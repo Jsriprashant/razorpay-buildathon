@@ -7,8 +7,19 @@ import Roster from "@/pages/Roster";
 import Recon from "@/pages/Recon";
 import Plan from "@/pages/Plan";
 import Forecast from "@/pages/Forecast";
+import Requests from "@/pages/Requests";
+import RequestNew from "@/pages/RequestNew";
+import RequestDetail from "@/pages/RequestDetail";
+import Vendors from "@/pages/Vendors";
 import HrSettings from "@/pages/hr/Settings";
+import HrInbox from "@/pages/hr/Inbox";
+import HrPostings from "@/pages/hr/Postings";
+import HrApplications from "@/pages/hr/Applications";
+import HrVendorDispatch from "@/pages/hr/VendorDispatch";
+import HrVendorCompanies from "@/pages/hr/VendorCompanies";
 import CareersLayout from "@/pages/CareersLayout";
+import CareersList from "@/pages/careers/CareersList";
+import CareersDetail from "@/pages/careers/CareersDetail";
 import { StubPage } from "@/pages/StubPage";
 
 export default function App() {
@@ -17,11 +28,8 @@ export default function App() {
       <Route path="/login" element={<Login />} />
 
       <Route path="/careers" element={<CareersLayout />}>
-        <Route index element={<StubPage title="Open roles" description="Published postings will be listed here." />} />
-        <Route
-          path=":slug"
-          element={<StubPage title="Job details" description="Posting detail and application form land here." />}
-        />
+        <Route index element={<CareersList />} />
+        <Route path=":slug" element={<CareersDetail />} />
       </Route>
 
       <Route
@@ -34,19 +42,19 @@ export default function App() {
         <Route path="/home" element={<Home />} />
         <Route path="/roster" element={<Roster />} />
         <Route path="/recon" element={<Recon />} />
-        <Route path="/requests" element={<StubPage title="Requests" description="Your submitted requests land here." />} />
-        <Route path="/requests/new" element={<StubPage title="New request" description="The request form lands here." />} />
-        <Route path="/requests/:id" element={<StubPage title="Request detail" description="Request detail and approval trail land here." />} />
+        <Route path="/requests" element={<Requests />} />
+        <Route path="/requests/new" element={<RequestNew />} />
+        <Route path="/requests/:id" element={<RequestDetail />} />
         <Route path="/forecast" element={<Forecast />} />
         <Route path="/plan" element={<Plan />} />
-        <Route path="/vendors" element={<StubPage title="Vendors" description="Vendor engagement overview lands here." />} />
+        <Route path="/vendors" element={<Vendors />} />
         <Route path="/history" element={<StubPage title="History" description="Closed-cycle history lands here." />} />
 
         <Route
           path="/hr/inbox"
           element={
             <RequireRole role="HR">
-              <StubPage title="Approval inbox" description="Pending requests awaiting HR decision land here." />
+              <HrInbox />
             </RequireRole>
           }
         />
@@ -54,7 +62,7 @@ export default function App() {
           path="/hr/postings"
           element={
             <RequireRole role="HR">
-              <StubPage title="Postings" description="Manage job postings here." />
+              <HrPostings />
             </RequireRole>
           }
         />
@@ -62,7 +70,7 @@ export default function App() {
           path="/hr/applications"
           element={
             <RequireRole role="HR">
-              <StubPage title="Applications" description="Review applicants here." />
+              <HrApplications />
             </RequireRole>
           }
         />
@@ -70,7 +78,7 @@ export default function App() {
           path="/hr/vendor-dispatch"
           element={
             <RequireRole role="HR">
-              <StubPage title="Vendor dispatch" description="Send engagement confirmations to vendors here." />
+              <HrVendorDispatch />
             </RequireRole>
           }
         />
@@ -78,7 +86,7 @@ export default function App() {
           path="/hr/vendors"
           element={
             <RequireRole role="HR">
-              <StubPage title="Vendor companies" description="Manage vendor company records here." />
+              <HrVendorCompanies />
             </RequireRole>
           }
         />

@@ -222,3 +222,149 @@ export interface WhatIfOut {
   months: WhatIfMonthPoint[];
   suggestions: ForecastSuggestion[];
 }
+
+export type RequestType = "FTE" | "VENDOR";
+export type RequestStatus = "DRAFT" | "SUBMITTED" | "APPROVED" | "REJECTED" | "CHANGES_REQUESTED" | "CANCELLED";
+export type ApprovalAction = "SUBMIT" | "APPROVE" | "REJECT" | "REQUEST_CHANGES" | "CANCEL" | "RESUBMIT";
+export type PositionStatus = "OPEN" | "FILLED" | "CANCELLED";
+export type PostingStatus = "PUBLISHED" | "PAUSED" | "CLOSED";
+export type ApplicationStatus = "NEW" | "SHORTLISTED" | "REJECTED" | "HIRED";
+export type EngagementStatus = "AWAITING_DISPATCH" | "MESSAGE_SENT" | "CONFIRMED" | "DECLINED" | "CANCELLED";
+export type EngagementLifecycle = "UPCOMING" | "ACTIVE" | "ENDED" | "CANCELLED";
+export type FitBadge = "NO_DATA" | "WITHIN_PLAN" | "EXCEEDS_PLAN" | "WITHIN_BUDGET" | "OVER_BUDGET";
+
+export interface ApprovalEvent {
+  id: number;
+  actor_id: number;
+  actor_name: string | null;
+  action: ApprovalAction;
+  note: string | null;
+  at: string;
+}
+
+export interface PositionSummary {
+  id: number;
+  status: PositionStatus;
+  filled_worker_id: number | null;
+  filled_worker_name: string | null;
+  filled_on: string | null;
+}
+
+export interface HiringRequest {
+  id: number;
+  team_id: number;
+  team_name: string | null;
+  cycle_id: number;
+  type: RequestType;
+  role_title: string;
+  grade: string | null;
+  quantity: number;
+  annual_salary_cents: number | null;
+  hourly_rate_cents: number | null;
+  hours_per_month: number | null;
+  vendor_company_id: number | null;
+  vendor_company_name: string | null;
+  target_start_date: string;
+  end_date: string | null;
+  justification: string;
+  source: "MANUAL" | "FORECAST_SUGGESTION";
+  status: RequestStatus;
+  decided_by: number | null;
+  decision_note: string | null;
+  created_by: number;
+  created_by_name: string | null;
+  created_at: string;
+  submitted_at: string | null;
+  approved_at: string | null;
+  posting_slug: string | null;
+  posting_status: string | null;
+  vendor_engagement_id: number | null;
+  vendor_engagement_status: string | null;
+  contract_value_cents: number | null;
+  plan_fit: FitBadge | null;
+  budget_fit: FitBadge | null;
+}
+
+export interface RequestDetail extends HiringRequest {
+  approval_events: ApprovalEvent[];
+  positions: PositionSummary[];
+  vendor_messages: VendorMessage[];
+}
+
+export interface JobPosting {
+  id: number;
+  request_id: number;
+  slug: string;
+  title: string;
+  description: string;
+  location: string;
+  openings: number;
+  status: PostingStatus;
+  published_at: string;
+  applicant_count: number;
+  open_position_count: number;
+}
+
+export interface PublicPostingListItem {
+  slug: string;
+  title: string;
+  location: string;
+  openings: number;
+  published_at: string;
+}
+
+export interface PublicPostingDetail extends PublicPostingListItem {
+  description: string;
+}
+
+export interface Application {
+  id: number;
+  posting_id: number;
+  posting_title: string | null;
+  name: string;
+  email: string;
+  phone: string | null;
+  profile_url: string | null;
+  note: string | null;
+  status: ApplicationStatus;
+  created_at: string;
+  suggested_annual_salary_cents: number | null;
+}
+
+export interface VendorCompany {
+  id: number;
+  name: string;
+  contact_name: string;
+  contact_email: string;
+}
+
+export interface VendorMessage {
+  id: number;
+  engagement_id: number;
+  to_email: string;
+  subject: string;
+  body: string;
+  status: "SENT" | "REPLIED";
+  sent_by: number;
+  sent_at: string;
+}
+
+export interface VendorEngagement {
+  id: number;
+  request_id: number;
+  team_id: number;
+  team_name: string | null;
+  role_title: string | null;
+  vendor_company_id: number;
+  vendor_company_name: string | null;
+  vendor_contact_email: string | null;
+  headcount: number;
+  hourly_rate_cents: number;
+  hours_per_month: number;
+  start_date: string;
+  end_date: string | null;
+  status: EngagementStatus;
+  lifecycle: EngagementLifecycle | null;
+  contract_value_cents: number | null;
+  messages: VendorMessage[];
+}

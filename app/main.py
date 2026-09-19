@@ -11,13 +11,18 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
+from app.routers import applications as applications_router
 from app.routers import auth as auth_router
 from app.routers import forecast as forecast_router
+from app.routers import hr as hr_router
 from app.routers import kpis as kpis_router
 from app.routers import plan as plan_router
+from app.routers import postings as postings_router
 from app.routers import recon as recon_router
+from app.routers import requests as requests_router
 from app.routers import roster as roster_router
 from app.routers import settings as settings_router
+from app.routers import vendors as vendors_router
 
 app = FastAPI(title="HeadcountHQ API", docs_url="/api/docs", openapi_url="/api/openapi.json")
 
@@ -36,6 +41,11 @@ app.include_router(recon_router.router, prefix="/api/v1")
 app.include_router(kpis_router.router, prefix="/api/v1")
 app.include_router(plan_router.router, prefix="/api/v1")
 app.include_router(forecast_router.router, prefix="/api/v1")
+app.include_router(requests_router.router, prefix="/api/v1")
+app.include_router(hr_router.router, prefix="/api/v1")
+app.include_router(postings_router.router, prefix="/api/v1")
+app.include_router(applications_router.router, prefix="/api/v1")
+app.include_router(vendors_router.router, prefix="/api/v1")
 
 
 @app.exception_handler(404)

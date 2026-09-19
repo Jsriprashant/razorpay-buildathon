@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardContent } from "@/components/ui/card";
@@ -98,6 +99,7 @@ export default function Plan() {
                   <th className="pb-2 pr-4">Planned FTE HC</th>
                   <th className="pb-2 pr-4">Planned vendor HC</th>
                   <th className="pb-2 pr-4">Planned budget ({currency})</th>
+                  <th className="pb-2 pr-4"></th>
                 </tr>
               </thead>
               <tbody>
@@ -134,6 +136,14 @@ export default function Plan() {
                         value={row.planned_budget_cents}
                         onChange={(e) => updateRow(i, "planned_budget_cents", e.target.value)}
                       />
+                    </td>
+                    <td className="py-2 pr-4">
+                      <Link
+                        to={`/requests/new?type=FTE&target_start_date=${row.month_start}&quantity=1`}
+                        className="text-xs font-medium text-primary hover:underline"
+                      >
+                        Request headcount
+                      </Link>
                     </td>
                   </tr>
                 ))}

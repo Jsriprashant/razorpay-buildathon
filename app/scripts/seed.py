@@ -423,6 +423,160 @@ def seed(db: Session) -> None:
         )
     )
 
+    # --- A DRAFT FTE request the manager hasn't submitted yet ----------------
+    draft_request = HiringRequest(
+        team_id=team.id,
+        cycle_id=current_cycle.id,
+        type=RequestType.FTE,
+        role_title="Product Analyst",
+        grade="G2",
+        quantity=1,
+        annual_salary_cents=base_salaries_cents["G2"],
+        target_start_date=add_months(today, 2),
+        justification="Draft: exploring analytics support for Q3 roadmap.",
+        source=RequestSource.MANUAL,
+        status=RequestStatus.DRAFT,
+        created_by=manager_user.id,
+        created_at=datetime.combine(today - timedelta(days=1), datetime.min.time()),
+    )
+    db.add(draft_request)
+
+    # --- A REJECTED FTE request (HR already decided) -------------------------
+    rejected_request = HiringRequest(
+        team_id=team.id,
+        cycle_id=current_cycle.id,
+        type=RequestType.FTE,
+        role_title="Chief of Staff",
+        grade="G4",
+        quantity=1,
+        annual_salary_cents=base_salaries_cents["G4"],
+        target_start_date=add_months(today, 1),
+        justification="Requesting an executive support role.",
+        source=RequestSource.MANUAL,
+        status=RequestStatus.REJECTED,
+        decided_by=hr_user.id,
+        decision_note="Out of scope for this team's current budget.",
+        created_by=manager_user.id,
+        created_at=datetime.combine(today - timedelta(days=10), datetime.min.time()),
+        submitted_at=datetime.combine(today - timedelta(days=10), datetime.min.time()),
+    )
+    db.add(rejected_request)
+    db.flush()
+    db.add(
+        ApprovalEvent(
+            request_id=rejected_request.id,
+            actor_id=manager_user.id,
+            action=ApprovalAction.SUBMIT,
+            note=None,
+            at=rejected_request.submitted_at,
+        )
+    )
+    db.add(
+        ApprovalEvent(
+            request_id=rejected_request.id,
+            actor_id=hr_user.id,
+            action=ApprovalAction.REJECT,
+            note=rejected_request.decision_note,
+            at=datetime.combine(today - timedelta(days=9), datetime.min.time()),
+        )
+    )
+
+    # --- A CHANGES_REQUESTED vendor request (manager must edit & resubmit) ---
+    changes_requested_request = HiringRequest(
+        team_id=team.id,
+        cycle_id=current_cycle.id,
+        type=RequestType.VENDOR,
+        role_title="Contract Recruiter",
+        quantity=1,
+        hourly_rate_cents=VENDOR_HOURLY_RATE_CENTS,
+        hours_per_month=VENDOR_HOURS_PER_MONTH,
+        vendor_company_id=vendor_companies[2].id,
+        target_start_date=add_months(today, 1),
+        end_date=add_months(today, 4),
+        justification="Temporary recruiting support for the hiring push.",
+        source=RequestSource.MANUAL,
+        status=RequestStatus.CHANGES_REQUESTED,
+        decided_by=hr_user.id,
+        decision_note="Please confirm the vendor's hourly rate against the MSA before resubmitting.",
+        created_by=manager_user.id,
+        created_at=datetime.combine(today - timedelta(days=5), datetime.min.time()),
+        submitted_at=datetime.combine(today - timedelta(days=5), datetime.min.time()),
+    )
+    db.add(changes_requested_request)
+    db.flush()
+    db.add(
+        ApprovalEvent(
+            request_id=changes_requested_request.id,
+            actor_id=manager_user.id,
+            action=ApprovalAction.SUBMIT,
+            note=None,
+            at=changes_requested_request.submitted_at,
+        )
+    )
+    db.add(
+        ApprovalEvent(
+            request_id=changes_requested_request.id,
+            actor_id=hr_user.id,
+            action=ApprovalAction.REQUEST_CHANGES,
+            note=changes_requested_request.decision_note,
+            at=datetime.combine(today - timedelta(days=4), datetime.min.time()),
+        )
+    )
+
+    # --- An APPROVED vendor request whose engagement is still awaiting
+    # dispatch (HR hasn't sent the confirmation message yet) ------------------
+    vendor_request_c = HiringRequest(
+        team_id=team.id,
+        cycle_id=current_cycle.id,
+        type=RequestType.VENDOR,
+        role_title="Contract UX Researcher",
+        quantity=1,
+        hourly_rate_cents=VENDOR_HOURLY_RATE_CENTS,
+        hours_per_month=VENDOR_HOURS_PER_MONTH,
+        vendor_company_id=vendor_companies[2].id,
+        target_start_date=add_months(today, 1),
+        end_date=add_months(today, 7),
+        justification="User research support for the platform redesign.",
+        source=RequestSource.MANUAL,
+        status=RequestStatus.APPROVED,
+        decided_by=hr_user.id,
+        created_by=manager_user.id,
+        created_at=datetime.combine(today - timedelta(days=3), datetime.min.time()),
+        submitted_at=datetime.combine(today - timedelta(days=3), datetime.min.time()),
+        approved_at=datetime.combine(today - timedelta(days=2), datetime.min.time()),
+    )
+    db.add(vendor_request_c)
+    db.flush()
+    db.add(
+        ApprovalEvent(
+            request_id=vendor_request_c.id,
+            actor_id=manager_user.id,
+            action=ApprovalAction.SUBMIT,
+            note=None,
+            at=vendor_request_c.submitted_at,
+        )
+    )
+    db.add(
+        ApprovalEvent(
+            request_id=vendor_request_c.id,
+            actor_id=hr_user.id,
+            action=ApprovalAction.APPROVE,
+            note="Approved - pending vendor dispatch.",
+            at=vendor_request_c.approved_at,
+        )
+    )
+    engagement_c = VendorEngagement(
+        request_id=vendor_request_c.id,
+        vendor_company_id=vendor_companies[2].id,
+        headcount=1,
+        hourly_rate_cents=VENDOR_HOURLY_RATE_CENTS,
+        hours_per_month=VENDOR_HOURS_PER_MONTH,
+        start_date=vendor_request_c.target_start_date,
+        end_date=vendor_request_c.end_date,
+        status=EngagementStatus.AWAITING_DISPATCH,
+    )
+    db.add(engagement_c)
+
     db.flush()
 
     # --- Snapshots + cycle_summary for every CLOSED month -------------------

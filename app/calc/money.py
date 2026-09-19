@@ -74,6 +74,34 @@ def vendor_month_cost_cents(
     return round_half_up_cents(fraction)
 
 
+def vendor_contract_value_cents(
+    headcount: int,
+    hourly_rate_cents: int,
+    hours_per_month: int,
+    start_date,
+    end_date,
+) -> int:
+    """Total contract value across every calendar month the engagement
+    spans: the sum of vendor_month_cost_cents(...) for each month from
+    start_date to end_date inclusive, prorated for partial first/last months.
+    Used for the live contract-value figure on the vendor request form and
+    the vendor engagement detail view.
+    """
+    from app.calc.dates import active_days_in_month, add_months, days_in_month, month_start
+
+    if end_date < start_date:
+        raise ValueError("end_date must be on/after start_date")
+    total = 0
+    m = month_start(start_date)
+    last_month = month_start(end_date)
+    while m <= last_month:
+        dim = days_in_month(m.year, m.month)
+        active_days = active_days_in_month(start_date, end_date, m)
+        total += vendor_month_cost_cents(headcount, hourly_rate_cents, hours_per_month, active_days, dim)
+        m = add_months(m, 1)
+    return total
+
+
 def format_cents(cents: int, currency: str = "USD") -> str:
     """One shared display formatter for whole-cent integers -> "$1,234.56"."""
     sign = "-" if cents < 0 else ""
