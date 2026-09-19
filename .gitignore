@@ -3,3 +3,13 @@ node_modules
 dist
 dist-ssr
 *.local
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.pythonlibs/
+.venv/
+
+# Frontend build output
+frontend/dist/

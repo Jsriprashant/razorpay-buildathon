@@ -1,10 +1,10 @@
-run = "vite"
-entrypoint = "src/App.jsx"
+modules = ["python-base-3.13", "nodejs-24", "postgresql-16"]
 
-hidden = [".config", "tsconfig.json", "tsconfig.node.json", "vite.config.js", ".gitignore"]
+hidden = [".config", "frontend/node_modules", ".pythonlibs"]
 
 [nix]
 channel = "stable-22_11"
+packages = ["libxcrypt", "postgresql"]
 
 [env]
 PATH = "/home/runner/$REPL_SLUG/.config/npm/node_global/bin:/home/runner/$REPL_SLUG/node_modules/.bin"
@@ -29,3 +29,36 @@ pattern = "**/{*.js,*.jsx,*.ts,*.tsx}"
 
 [languages.javascript.languageServer]
 start = "./node_modules/.bin/typescript-language-server --stdio"
+
+[deployment]
+deploymentTarget = "autoscale"
+build = ["bash", "-lc", "cd frontend && npm install --no-audit --no-fund && npm run build"]
+run = ["bash", "-lc", "uv run python -m app.scripts.init_db && uv run python -m app.scripts.seed && uv run uvicorn app.main:app --host 0.0.0.0 --port $PORT"]
+
+[[ports]]
+localPort = 5000
+externalPort = 80
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start application"
+
+[[workflows.workflow]]
+name = "Start application"
+author = "agent"
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd frontend && npm install --no-audit --no-fund && npm run build && cd .. && uv run python -m app.scripts.init_db && uv run python -m app.scripts.seed && uv run uvicorn app.main:app --host 0.0.0.0 --port 5000"
+waitForPort = 5000
