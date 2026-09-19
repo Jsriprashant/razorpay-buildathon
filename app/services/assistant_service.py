@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import os
+import time
 from collections.abc import Iterator
 from typing import Any
 
@@ -34,6 +35,12 @@ ALLOWED_MODELS = {option.id for option in MODEL_OPTIONS}
 AUTO_MODEL = "gpt-5-mini"
 REASONING_MODELS = {"gpt-5", "gpt-5-mini"}
 REASONING_MAP = {"none": "minimal", "low": "low", "medium": "medium", "high": "high", "max": "high"}
+INITIAL_OUTPUT_TOKENS = 6_000
+FINAL_OUTPUT_TOKENS = 10_000
+MAX_OUTPUT_TOKENS = 16_000
+MAX_HISTORY_CHARS = 24_000
+MAX_TOOL_RESULT_ITEMS = 50
+MAX_PROVIDER_ATTEMPTS = 3
 TOOL_LABELS = {
     "get_headcount_overview": "Reviewed headcount KPIs",
     "get_roster": "Searched the roster",
@@ -115,6 +122,74 @@ def _extract_text(output: list[dict[str, Any]]) -> str:
     return "\n".join(chunks).strip()
 
 
+def _compact_history(payload: AssistantChatRequest) -> list[dict[str, str]]:
+    """Keep the newest useful history without repeatedly sending huge transcripts."""
+    selected: list[dict[str, str]] = []
+    remaining = MAX_HISTORY_CHARS
+    for item in reversed(payload.history):
+        if remaining <= 0:
+            break
+        content = item.content[-remaining:]
+        selected.append({"role": item.role, "content": content})
+        remaining -= len(content)
+    return list(reversed(selected))
+
+
+def _compact_tool_result(value: Any) -> Any:
+    """Bound large live-data payloads while preserving their shape and totals."""
+    if isinstance(value, list):
+        compacted = [_compact_tool_result(item) for item in value[:MAX_TOOL_RESULT_ITEMS]]
+        if len(value) > MAX_TOOL_RESULT_ITEMS:
+            compacted.append(
+                {
+                    "_truncated": True,
+                    "_returned_items": MAX_TOOL_RESULT_ITEMS,
+                    "_total_items": len(value),
+                }
+            )
+        return compacted
+    if isinstance(value, dict):
+        return {key: _compact_tool_result(item) for key, item in value.items()}
+    if isinstance(value, str) and len(value) > 4_000:
+        return value[:4_000] + "…"
+    return value
+
+
+def _serialize_tool_result(value: Any) -> str:
+    return json.dumps(_compact_tool_result(value), default=str)
+
+
+def _post_with_retry(
+    client: httpx.Client,
+    headers: dict[str, str],
+    request_body: dict[str, Any],
+) -> httpx.Response:
+    """Retry only temporary provider failures; never replay product actions."""
+    for attempt in range(MAX_PROVIDER_ATTEMPTS):
+        try:
+            response = client.post(
+                "https://api.openai.com/v1/responses",
+                headers=headers,
+                json=request_body,
+            )
+        except httpx.RequestError:
+            if attempt == MAX_PROVIDER_ATTEMPTS - 1:
+                raise
+            time.sleep(0.5 * (2**attempt))
+            continue
+        if response.status_code not in {429, 500, 502, 503, 504}:
+            return response
+        if attempt == MAX_PROVIDER_ATTEMPTS - 1:
+            return response
+        retry_after = response.headers.get("retry-after")
+        try:
+            delay = min(float(retry_after), 4.0) if retry_after else 0.5 * (2**attempt)
+        except ValueError:
+            delay = 0.5 * (2**attempt)
+        time.sleep(delay)
+    raise RuntimeError("unreachable")
+
+
 def _sse(event: str, data: dict[str, Any]) -> str:
     """Serialize one named server-sent event."""
     return f"event: {event}\ndata: {json.dumps(data, default=str)}\n\n"
@@ -184,14 +259,14 @@ def chat_stream(
     conversation: list[dict[str, Any]] = [
         {"role": "developer", "content": _system_prompt(user, team_id, payload.message)}
     ]
-    conversation.extend({"role": item.role, "content": item.content} for item in payload.history[-20:])
+    conversation.extend(_compact_history(payload))
     conversation.append({"role": "user", "content": payload.message})
     request_body: dict[str, Any] = {
         "model": model,
         "input": conversation,
         "tools": available_tool_specs(user),
         "tool_choice": "auto",
-        "max_output_tokens": 2_000,
+        "max_output_tokens": INITIAL_OUTPUT_TOKENS,
     }
     if model in REASONING_MODELS:
         request_body["reasoning"] = {"effort": REASONING_MAP[payload.reasoning_effort]}
@@ -212,10 +287,11 @@ def chat_stream(
 
     try:
         with httpx.Client(timeout=90.0) as client:
-            for step in range(6):
+            for step in range(8):
                 output: list[dict[str, Any]] = []
                 streamed_text = False
                 provider_completed = False
+                incomplete_reason: str | None = None
                 yield _sse(
                     "status",
                     {
@@ -243,14 +319,44 @@ def chat_stream(
                         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=message)
                     elif event_type == "response.incomplete":
                         incomplete = provider_event.get("response", {})
-                        reason = (
+                        output = incomplete.get("output", [])
+                        incomplete_reason = (
                             incomplete.get("incomplete_details", {}).get("reason")
                             or "The AI provider ended the response before it was complete."
                         )
-                        raise HTTPException(
-                            status_code=status.HTTP_502_BAD_GATEWAY,
-                            detail=f"Incomplete assistant response: {reason}",
+
+                if incomplete_reason:
+                    if (
+                        incomplete_reason == "max_output_tokens"
+                        and request_body["max_output_tokens"] < MAX_OUTPUT_TOKENS
+                    ):
+                        partial = _extract_text(output)
+                        if partial and not streamed_text:
+                            answer_parts.append(partial)
+                            yield _sse("answer_delta", {"delta": partial})
+                        if partial:
+                            conversation.append({"role": "assistant", "content": partial})
+                            conversation.append(
+                                {
+                                    "role": "developer",
+                                    "content": (
+                                        "Continue exactly where the prior answer stopped. "
+                                        "Do not repeat prior text. Finish concisely."
+                                    ),
+                                }
+                            )
+                        request_body["input"] = conversation
+                        request_body["max_output_tokens"] = min(
+                            request_body["max_output_tokens"] * 2,
+                            MAX_OUTPUT_TOKENS,
                         )
+                        if model in REASONING_MODELS:
+                            request_body["reasoning"] = {"effort": "minimal"}
+                        continue
+                    raise HTTPException(
+                        status_code=status.HTTP_502_BAD_GATEWAY,
+                        detail=f"Incomplete assistant response: {incomplete_reason}",
+                    )
 
                 if not provider_completed:
                     raise HTTPException(
@@ -288,7 +394,7 @@ def chat_stream(
                         tool_result, proposed_action = execute_tool(db, user, team_id, name, arguments)
                         if proposed_action is not None:
                             pending_action = proposed_action
-                        serialized = json.dumps(tool_result, default=str)
+                        serialized = _serialize_tool_result(tool_result)
                         tool_state = "complete"
                     except HTTPException as exc:
                         serialized = json.dumps({"error": exc.detail, "status_code": exc.status_code})
@@ -306,6 +412,9 @@ def chat_stream(
                         }
                     )
                 request_body["input"] = conversation
+                request_body["max_output_tokens"] = FINAL_OUTPUT_TOKENS
+                if model in REASONING_MODELS:
+                    request_body["reasoning"] = {"effort": "minimal"}
     except HTTPException as exc:
         yield _sse("error", {"message": str(exc.detail)})
         return
@@ -336,7 +445,7 @@ def chat(db: Session, user: AppUser, payload: AssistantChatRequest) -> Assistant
     conversation: list[dict[str, Any]] = [
         {"role": "developer", "content": _system_prompt(user, team_id, payload.message)}
     ]
-    conversation.extend({"role": item.role, "content": item.content} for item in payload.history[-20:])
+    conversation.extend(_compact_history(payload))
     conversation.append({"role": "user", "content": payload.message})
 
     request_body: dict[str, Any] = {
@@ -344,19 +453,20 @@ def chat(db: Session, user: AppUser, payload: AssistantChatRequest) -> Assistant
         "input": conversation,
         "tools": available_tool_specs(user),
         "tool_choice": "auto",
-        "max_output_tokens": 2_000,
+        "max_output_tokens": INITIAL_OUTPUT_TOKENS,
     }
     if model in REASONING_MODELS:
         request_body["reasoning"] = {"effort": REASONING_MAP[payload.reasoning_effort]}
 
     activities: list[ToolActivity] = []
     pending_action = None
+    answer_parts: list[str] = []
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
 
     try:
         with httpx.Client(timeout=60.0) as client:
-            for _ in range(6):
-                response = client.post("https://api.openai.com/v1/responses", headers=headers, json=request_body)
+            for _ in range(8):
+                response = _post_with_retry(client, headers, request_body)
                 if response.status_code >= 400:
                     detail = "The AI provider could not complete this request."
                     try:
@@ -369,11 +479,37 @@ def chat(db: Session, user: AppUser, payload: AssistantChatRequest) -> Assistant
 
                 result = response.json()
                 output = result.get("output", [])
+                if result.get("status") == "incomplete":
+                    reason = result.get("incomplete_details", {}).get("reason")
+                    if reason == "max_output_tokens" and request_body["max_output_tokens"] < MAX_OUTPUT_TOKENS:
+                        partial = _extract_text(output)
+                        if partial:
+                            answer_parts.append(partial)
+                            conversation.append({"role": "assistant", "content": partial})
+                            conversation.append(
+                                {
+                                    "role": "developer",
+                                    "content": "Continue exactly where the prior answer stopped without repeating it.",
+                                }
+                            )
+                        request_body["input"] = conversation
+                        request_body["max_output_tokens"] = min(
+                            request_body["max_output_tokens"] * 2,
+                            MAX_OUTPUT_TOKENS,
+                        )
+                        if model in REASONING_MODELS:
+                            request_body["reasoning"] = {"effort": "minimal"}
+                        continue
+                    raise HTTPException(
+                        status_code=status.HTTP_502_BAD_GATEWAY,
+                        detail=f"Incomplete assistant response: {reason or 'unknown reason'}",
+                    )
                 calls = [item for item in output if item.get("type") == "function_call"]
                 if not calls:
                     answer = _extract_text(output)
                     return AssistantChatResponse(
-                        answer=answer or "I completed the request but did not receive a text response.",
+                        answer=("".join(answer_parts) + answer).strip()
+                        or "I completed the request but did not receive a text response.",
                         model_used=model,
                         tool_activity=activities,
                         pending_action=pending_action,
@@ -387,7 +523,7 @@ def chat(db: Session, user: AppUser, payload: AssistantChatRequest) -> Assistant
                         tool_result, proposed_action = execute_tool(db, user, team_id, name, arguments)
                         if proposed_action is not None:
                             pending_action = proposed_action
-                        serialized = json.dumps(tool_result, default=str)
+                        serialized = _serialize_tool_result(tool_result)
                     except HTTPException as exc:
                         serialized = json.dumps({"error": exc.detail, "status_code": exc.status_code})
                     except (ValueError, TypeError, KeyError) as exc:
@@ -401,6 +537,9 @@ def chat(db: Session, user: AppUser, payload: AssistantChatRequest) -> Assistant
                         }
                     )
                 request_body["input"] = conversation
+                request_body["max_output_tokens"] = FINAL_OUTPUT_TOKENS
+                if model in REASONING_MODELS:
+                    request_body["reasoning"] = {"effort": "minimal"}
     except httpx.RequestError as exc:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,

@@ -76,6 +76,7 @@ export async function streamApi(
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
+  let terminalEventReceived = false;
 
   while (true) {
     const { value, done } = await reader.read();
@@ -93,7 +94,11 @@ export async function streamApi(
       if (!dataLines.length) continue;
       const parsed = JSON.parse(dataLines.join("\n")) as Record<string, unknown>;
       onEvent(event, parsed);
+      if (event === "done" || event === "error") terminalEventReceived = true;
     }
     if (done) break;
+  }
+  if (!terminalEventReceived && !signal?.aborted) {
+    throw new ApiError(502, "The assistant connection ended before the response completed. Please retry.");
   }
 }
