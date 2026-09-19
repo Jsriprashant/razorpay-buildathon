@@ -5,3 +5,4 @@
 - [SQLAlchemy circular FK pattern](sqlalchemy-circular-fk.md) — how to model mutually-referencing tables (team↔worker, worker↔position) without a hard cycle.
 - [Postgres reset lock contention](postgres-reset-lock-contention.md) — a mid-request drop_all/reseed must close the request's own DB session first or it can hang on lock contention.
 - [Date-only arithmetic/display timezone bug](date-arithmetic-timezone-bug.md) — never let `new Date("YYYY-MM-DD")` flow into local-time getters/formatters; use `parseISO` or manual UTC math instead.
+- [Restyling an existing app with design subagents](existing-app-design-subagent-restyle.md) — build the theme/shared components yourself first, then ground parallel design subagents in those real files, not a prose spec.

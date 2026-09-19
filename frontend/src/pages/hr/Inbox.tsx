@@ -54,7 +54,7 @@ export default function HrInbox() {
   }
 
   return (
-    <div>
+    <div className="space-y-6">
       <PageHeader
         title="Approval inbox"
         description="Requests awaiting your decision. Plan/budget badges are informational — you may always approve."
@@ -67,10 +67,10 @@ export default function HrInbox() {
         }
       />
 
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <Input placeholder="Search…" className="h-9 w-56" value={q} onChange={(e) => setQ(e.target.value)} />
+      <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-border/70 bg-card p-3 shadow-card">
+        <Input placeholder="Search requests…" className="h-10 w-64 bg-background" value={q} onChange={(e) => setQ(e.target.value)} />
         <select
-          className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+           className="h-10 rounded-xl border border-input bg-background px-3 text-sm"
           value={type}
           onChange={(e) => setType(e.target.value as RequestType | "ALL")}
         >
@@ -80,7 +80,7 @@ export default function HrInbox() {
         </select>
       </div>
 
-      {error && <p className="mb-4 text-sm text-destructive">{error}</p>}
+      {error && <p className="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</p>}
 
       {isLoading && <Skeleton className="h-64 w-full" />}
 
@@ -90,7 +90,7 @@ export default function HrInbox() {
 
       <div className="flex flex-col gap-3">
         {data?.map((r) => (
-          <Card key={r.id}>
+          <Card key={r.id} className="transition-shadow hover:shadow-card-hover">
             <CardContent className="flex flex-col gap-3 pt-6">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-start gap-3">
@@ -101,7 +101,7 @@ export default function HrInbox() {
                     onChange={() => toggleSelected(r.id)}
                   />
                   <div>
-                    <Link to={`/requests/${r.id}`} className="font-medium hover:underline">
+                    <Link to={`/requests/${r.id}`} className="font-semibold text-foreground hover:text-primary hover:underline">
                       {r.role_title}
                     </Link>
                     <p className="text-sm text-muted-foreground">

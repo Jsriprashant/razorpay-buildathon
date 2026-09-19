@@ -22,9 +22,9 @@ export default function History() {
     <div>
       <PageHeader title="History" description="Closed cycles: the roster snapshot and plan-vs-actual result recorded when each month rolled over." />
 
-      {isLoading && <Skeleton className="h-64 w-full" />}
+      {isLoading && <Skeleton className="h-64 w-full rounded-2xl" />}
 
-      {isError && !isLoading && <p className="text-sm text-destructive">Could not load cycle history. Please try again.</p>}
+      {isError && !isLoading && <div className="rounded-2xl border border-destructive/20 bg-destructive/5 p-5 text-sm text-destructive">Could not load cycle history. Please try again.</div>}
 
       {!isLoading && !isError && (!data || data.length === 0) && (
         <EmptyState
@@ -38,7 +38,7 @@ export default function History() {
           <CardContent className="overflow-x-auto pt-6">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
+                <tr className="border-b border-border text-left text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                   <th className="pb-2 pr-4">Month</th>
                   <th className="pb-2 pr-4">Plan FTE / Actual</th>
                   <th className="pb-2 pr-4">Plan Vendor / Actual</th>
@@ -53,7 +53,7 @@ export default function History() {
                   const s = cycle.summary;
                   const variance = s ? s.actual_cost_cents - s.plan_budget_cents : 0;
                   return (
-                    <tr key={cycle.id} className="border-b border-border last:border-b-0">
+                    <tr key={cycle.id} className="border-b border-border transition-colors last:border-b-0 hover:bg-accent/40">
                       <td className="py-2 pr-4 font-medium text-foreground">
                         {format(parseDateOnly(cycle.month_start), "MMMM yyyy")}
                       </td>

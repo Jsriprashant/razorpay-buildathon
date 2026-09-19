@@ -121,14 +121,14 @@ export default function Roster() {
         description="Everyone on the team, as of the selected month."
         actions={
           <>
-            <Input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="w-auto" />
+            <Input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="w-auto bg-card shadow-card" />
             {canEdit && <Button onClick={() => setShowAdd((v) => !v)}>{showAdd ? "Cancel" : "Add worker"}</Button>}
           </>
         }
       />
 
       {showAdd && (
-        <Card className="mb-6">
+        <Card className="mb-6 shadow-card-hover">
           <CardContent className="pt-6">
             <form
               className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
@@ -198,7 +198,7 @@ export default function Roster() {
         </Card>
       )}
 
-      {isLoading && <Skeleton className="h-64 w-full" />}
+      {isLoading && <Skeleton className="h-64 w-full rounded-2xl" />}
 
       {!isLoading && sortedWorkers.length === 0 && (
         <EmptyState title="No one on the roster for this month" description="Add a worker to get started." />
@@ -209,7 +209,7 @@ export default function Roster() {
           <CardContent className="overflow-x-auto pt-6">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
+                <tr className="border-b border-border text-left text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                   <th className="pb-2 pr-4">ID</th>
                   <th className="pb-2 pr-4">Name</th>
                   <th className="pb-2 pr-4">Title</th>
@@ -223,7 +223,7 @@ export default function Roster() {
               </thead>
               <tbody>
                 {sortedWorkers.map((w) => (
-                  <tr key={w.id} className="border-b border-border/60 align-top">
+                  <tr key={w.id} className="border-b border-border/60 align-top transition-colors hover:bg-accent/40">
                     <td className="py-2 pr-4 text-muted-foreground">{w.worker_id}</td>
                     <td className="py-2 pr-4 font-medium">{w.name}</td>
                     <td className="py-2 pr-4">

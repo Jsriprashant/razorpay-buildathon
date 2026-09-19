@@ -14,11 +14,9 @@ west of UTC. This breaks both date *arithmetic* (proration, day counts,
 "is this in the past" checks) and plain *display* (a month/date label
 showing the wrong month).
 
-**Why:** caught twice by code review in this project — once in a form that
-previewed a backend-computed value from start/end dates (proration), and
-again in cycle/rollover/demo-clock UI that labels a month or date purely
-for display. Both are the same root cause: a date-only string flowing into
-local-time-sensitive code.
+**Why:** date-only values can silently produce a different calendar day when
+UTC parsing is followed by local-time formatting or arithmetic. This affects
+both calculations and plain month/date labels.
 
 **How to apply:** for any date-only (no time-of-day) field coming from an
 API in JS/TS:

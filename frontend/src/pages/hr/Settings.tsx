@@ -48,13 +48,13 @@ export default function HrSettings() {
   }
 
   return (
-    <div>
+    <div className="space-y-6">
       <PageHeader title="Settings" description="Anything configurable in HeadcountHQ lives here — nothing is hardcoded." />
-      <Card className="max-w-xl">
+      <Card className="max-w-2xl">
         <CardContent className="pt-6">
           {isLoading && <Skeleton className="h-64 w-full" />}
           {current && (
-            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            <form onSubmit={handleSubmit} className="grid gap-5 sm:grid-cols-2">
               {FIELDS.map(({ key, label, type, hint }) => (
                 <div key={key} className="flex flex-col gap-1.5">
                   <Label htmlFor={key}>{label}</Label>
@@ -67,7 +67,7 @@ export default function HrSettings() {
                   <p className="text-xs text-muted-foreground">{hint}</p>
                 </div>
               ))}
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 sm:col-span-2">
                 <Button type="submit" disabled={mutation.isPending}>
                   {mutation.isPending ? "Saving…" : "Save settings"}
                 </Button>

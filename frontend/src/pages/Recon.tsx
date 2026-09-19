@@ -92,12 +92,12 @@ export default function Recon() {
         actions={<Input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="w-auto" />}
       />
 
-      {isLoading && <Skeleton className="h-96 w-full" />}
+       {isLoading && <Skeleton className="h-96 w-full rounded-2xl" />}
 
       {!isLoading && data && (
         <>
           {data.unresolved_flag_count > 0 && (
-            <div className="mb-4 flex items-center justify-between rounded-md border border-warning/40 bg-warning/10 px-4 py-2 text-sm">
+            <div className="mb-5 flex items-center justify-between rounded-2xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm shadow-card">
               <span>
                 {data.unresolved_flag_count} unresolved flag{data.unresolved_flag_count !== 1 ? "s" : ""} this period.
               </span>
@@ -113,7 +113,7 @@ export default function Recon() {
           )}
 
           {linkingWorker !== null && (
-            <div className="mb-4 rounded-md border border-border bg-muted/40 px-4 py-3 text-sm">
+            <div className="mb-5 rounded-2xl border border-border bg-card px-4 py-3 text-sm shadow-card">
               <div className="mb-2 flex items-center justify-between">
                 <span className="font-medium">Link to an open position</span>
                 <Button size="sm" variant="ghost" onClick={() => { setLinkingWorker(null); setMatches([]); }}>
@@ -143,7 +143,7 @@ export default function Recon() {
             </div>
           )}
           <Tabs defaultValue="changes">
-            <TabsList>
+            <TabsList className="mb-1 w-full overflow-x-auto">
               <TabsTrigger value="changes">Changes since last month</TabsTrigger>
               <TabsTrigger value="requested">Requested vs. actual</TabsTrigger>
               <TabsTrigger value="plan">Plan vs. actual</TabsTrigger>
@@ -156,11 +156,11 @@ export default function Recon() {
                   description="There's no prior month to diff against yet — changes will appear starting next month."
                 />
               ) : (
-                <Card>
+                <Card className="overflow-hidden">
                   <CardContent className="overflow-x-auto pt-6">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
+                        <tr className="border-b border-border text-left text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                           <th className="pb-2 pr-4">Worker</th>
                           <th className="pb-2 pr-4">Category</th>
                           <th className="pb-2 pr-4">Detail</th>
@@ -170,7 +170,7 @@ export default function Recon() {
                       </thead>
                       <tbody>
                         {[...data.changes.new_hires, ...data.changes.exits, ...data.changes.changes].map((item, i) => (
-                          <tr key={`${item.worker_id}-${i}`} className="border-b border-border/60">
+                          <tr key={`${item.worker_id}-${i}`} className="border-b border-border/60 transition-colors hover:bg-accent/40">
                             <td className="py-2 pr-4">
                               {item.name} <span className="text-muted-foreground">({item.worker_id})</span>
                             </td>
@@ -253,11 +253,11 @@ export default function Recon() {
             </TabsContent>
 
             <TabsContent value="requested">
-              <Card>
+              <Card className="overflow-hidden">
                 <CardContent className="overflow-x-auto pt-6">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
+                      <tr className="border-b border-border text-left text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                         <th className="pb-2 pr-4">Role</th>
                         <th className="pb-2 pr-4">Target start</th>
                         <th className="pb-2 pr-4">Status</th>
@@ -267,7 +267,7 @@ export default function Recon() {
                     </thead>
                     <tbody>
                       {data.requested_vs_actual.positions.map((p) => (
-                        <tr key={p.position_id} className="border-b border-border/60">
+                        <tr key={p.position_id} className="border-b border-border/60 transition-colors hover:bg-accent/40">
                           <td className="py-2 pr-4">
                             {p.role_title} {p.grade && <span className="text-muted-foreground">({p.grade})</span>}
                           </td>
@@ -363,11 +363,11 @@ export default function Recon() {
             </TabsContent>
 
             <TabsContent value="plan">
-              <Card>
+              <Card className="overflow-hidden">
                 <CardContent className="overflow-x-auto pt-6">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
+                      <tr className="border-b border-border text-left text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                         <th className="pb-2 pr-4">Month</th>
                         <th className="pb-2 pr-4">FTE plan/actual</th>
                         <th className="pb-2 pr-4">Vendor plan/actual</th>
@@ -379,7 +379,7 @@ export default function Recon() {
                     </thead>
                     <tbody>
                       {data.plan_vs_actual.rows.map((r) => (
-                        <tr key={r.month_start} className="border-b border-border/60">
+                        <tr key={r.month_start} className="border-b border-border/60 transition-colors hover:bg-accent/40">
                           <td className="py-2 pr-4">
                             {r.month_start} {!r.is_closed && <Badge variant="outline">open</Badge>}
                           </td>

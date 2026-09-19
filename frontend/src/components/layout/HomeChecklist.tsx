@@ -72,7 +72,7 @@ export function HomeChecklist() {
       </CardHeader>
       <CardContent className="flex flex-col gap-2">
         {steps.map((step) => (
-          <div key={step.key} className="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2">
+          <div key={step.key} className="flex items-center justify-between gap-3 rounded-xl border border-border px-3.5 py-2.5">
             <div className="flex items-center gap-2">
               {step.done ? (
                 <CheckCircle2 className="h-5 w-5 shrink-0 text-success" />

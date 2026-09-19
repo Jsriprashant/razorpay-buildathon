@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Area, CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { EmptyState } from "@/components/layout/EmptyState";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -81,12 +81,12 @@ export default function Forecast() {
       />
 
       {showDisclosure && (
-        <Card className="mb-6">
+        <Card className="mb-6 border-primary/15 bg-accent/30">
           <CardContent className="whitespace-pre-line pt-6 text-sm text-muted-foreground">{data?.disclosure}</CardContent>
         </Card>
       )}
 
-      {isLoading && <Skeleton className="h-96 w-full" />}
+      {isLoading && <Skeleton className="h-96 w-full rounded-2xl" />}
 
       {!isLoading && data && data.months.length === 0 && (
         <EmptyState
@@ -97,47 +97,54 @@ export default function Forecast() {
 
       {!isLoading && data && data.months.length > 0 && (
         <>
-          <Card className="mb-6">
+          <Card className="mb-6 shadow-card-hover">
             <CardHeader>
               <CardTitle>Projected FTE headcount vs. plan</CardTitle>
             </CardHeader>
             <CardContent className="h-72">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
-                  <YAxis allowDecimals={false} />
-                  <Tooltip />
-                  <Legend />
-                  <Line type="monotone" dataKey="Plan" stroke="#2563eb" strokeWidth={2} />
-                  <Line type="monotone" dataKey="Projected" stroke="#dc2626" strokeWidth={2} />
-                  <Line type="monotone" dataKey="With suggestions" stroke="#16a34a" strokeDasharray="4 4" strokeWidth={2} />
+                  <defs>
+                    <linearGradient id="forecastFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.22} />
+                      <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0.02} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+                  <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+                  <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid hsl(var(--border))", boxShadow: "0 12px 32px -8px rgb(30 27 75 / .18)", fontSize: 12 }} />
+                  <Legend wrapperStyle={{ fontSize: 12 }} />
+                  <Area type="monotone" dataKey="Projected" fill="url(#forecastFill)" stroke="none" />
+                  <Line type="monotone" dataKey="Plan" stroke="hsl(var(--primary))" strokeWidth={2.5} dot={false} />
+                  <Line type="monotone" dataKey="Projected" stroke="hsl(var(--destructive))" strokeWidth={2.5} dot={false} />
+                  <Line type="monotone" dataKey="With suggestions" stroke="hsl(var(--success))" strokeDasharray="5 5" strokeWidth={2.5} dot={false} />
                 </LineChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
 
-          <Card className="mb-6">
+          <Card className="mb-6 shadow-card-hover">
             <CardHeader>
               <CardTitle>Cost scenarios</CardTitle>
             </CardHeader>
             <CardContent className="h-72">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={costChartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
-                  <YAxis tickFormatter={(v) => formatCents(v * 100, currency)} />
-                  <Tooltip formatter={(v) => formatCents(Number(v) * 100, currency)} />
-                  <Legend />
-                  <Line type="monotone" dataKey="Plan cost" stroke="#2563eb" strokeWidth={2} />
-                  <Line type="monotone" dataKey="No action" stroke="#dc2626" strokeWidth={2} />
-                  <Line type="monotone" dataKey="With suggestions" stroke="#16a34a" strokeDasharray="4 4" strokeWidth={2} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+                  <YAxis tickFormatter={(v) => formatCents(v * 100, currency)} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+                  <Tooltip formatter={(v) => formatCents(Number(v) * 100, currency)} contentStyle={{ borderRadius: 16, border: "1px solid hsl(var(--border))", boxShadow: "0 12px 32px -8px rgb(30 27 75 / .18)", fontSize: 12 }} />
+                  <Legend wrapperStyle={{ fontSize: 12 }} />
+                  <Line type="monotone" dataKey="Plan cost" stroke="hsl(var(--primary))" strokeWidth={2.5} dot={false} />
+                  <Line type="monotone" dataKey="No action" stroke="hsl(var(--destructive))" strokeWidth={2.5} dot={false} />
+                  <Line type="monotone" dataKey="With suggestions" stroke="hsl(var(--success))" strokeDasharray="5 5" strokeWidth={2.5} dot={false} />
                 </LineChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
 
-          <Card className="mb-6">
+           <Card className="mb-6 shadow-card-hover">
             <CardHeader>
               <CardTitle>Suggestions</CardTitle>
             </CardHeader>
@@ -147,7 +154,7 @@ export default function Forecast() {
               ) : (
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
+                     <tr className="border-b border-border text-left text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                       <th className="pb-2 pr-4">Type</th>
                       <th className="pb-2 pr-4">Quantity</th>
                       <th className="pb-2 pr-4">Start</th>
@@ -158,7 +165,7 @@ export default function Forecast() {
                   </thead>
                   <tbody>
                     {data.suggestions.map((s, i) => (
-                      <tr key={i} className="border-b border-border/60">
+                       <tr key={i} className="border-b border-border/60 transition-colors hover:bg-accent/40">
                         <td className="py-2 pr-4">
                           <Badge variant="outline">{s.type}</Badge>
                         </td>
@@ -186,7 +193,7 @@ export default function Forecast() {
             </CardContent>
           </Card>
 
-          <Card>
+           <Card className="shadow-card-hover">
             <CardHeader>
               <CardTitle>What-if</CardTitle>
             </CardHeader>
@@ -232,7 +239,7 @@ export default function Forecast() {
                 <div className="flex flex-col gap-1.5">
                   <Label>Extra hires type</Label>
                   <select
-                    className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                     className="h-10 rounded-xl border border-input bg-background px-3 text-sm"
                     value={whatIf.extra_hires_type}
                     onChange={(e) => setWhatIf({ ...whatIf, extra_hires_type: e.target.value as "FTE" | "VENDOR" })}
                   >
@@ -268,7 +275,7 @@ export default function Forecast() {
                 <>
                   <table className="mt-4 w-full text-sm">
                     <thead>
-                      <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
+                       <tr className="border-b border-border text-left text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                         <th className="pb-2 pr-4">Month</th>
                         <th className="pb-2 pr-4">Baseline FTE / vendor</th>
                         <th className="pb-2 pr-4">What-if FTE / vendor</th>

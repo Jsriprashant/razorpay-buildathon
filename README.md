@@ -116,3 +116,28 @@ you can see every feature without setting anything up first.
 - **No mocked data / no dead buttons**: seed data is deterministic and
   labelled DEMO; anything not yet built is an explicit empty state with a
   next action, not a stub that pretends to work.
+
+## Headcount Copilot
+
+Authenticated users can open **Ask Copilot** from the bottom-right corner.
+It can explain live KPIs, roster and request data, inspect the forecast, run
+non-destructive what-if scenarios, and prepare hiring or plan actions.
+
+- The backend harness lives in `app/services/assistant_service.py`.
+- Product tools and write confirmation logic live in
+  `app/services/assistant_tools.py`.
+- Small domain instructions are selected per request from
+  `app/services/assistant_skills.py`.
+- The UI is isolated in
+  `frontend/src/components/layout/AssistantCopilot.tsx`.
+- `Auto` chooses a model based on request complexity and the selected
+  reasoning level. Users can also choose a supported model directly.
+- Tool results use the same team-scoped services as the normal UI. The model
+  never receives database credentials and cannot execute arbitrary SQL.
+- Forecast scenarios are read-only. Every data mutation is validated by the
+  backend and shown as a confirmation card before it runs.
+- The assistant never exposes hidden chain-of-thought; it returns conclusions,
+  calculations, assumptions, and visible tool activity instead.
+
+The server reads `OPENAI_API_KEY` from Replit Secrets. It is never sent to the
+browser or stored in chat messages.

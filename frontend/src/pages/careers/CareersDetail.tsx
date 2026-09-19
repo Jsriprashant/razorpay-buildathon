@@ -64,8 +64,8 @@ export default function CareersDetail() {
 
   if (submitted) {
     return (
-      <div className="mx-auto max-w-xl text-center">
-        <h1 className="mb-2 text-2xl font-semibold">Thanks for applying!</h1>
+    <div className="mx-auto max-w-xl rounded-2xl border border-border/70 bg-card p-10 text-center shadow-card">
+        <h1 className="mb-2 font-logotype text-3xl font-medium">Thanks for applying.</h1>
         <p className="mb-6 text-sm text-muted-foreground">
           We've received your application for <span className="font-medium text-foreground">{posting.title}</span> and
           will be in touch if there's a match.
@@ -78,19 +78,24 @@ export default function CareersDetail() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl">
-      <Link to="/careers" className="mb-4 inline-block text-sm text-muted-foreground hover:underline">
+    <div className="mx-auto grid max-w-5xl gap-8 lg:grid-cols-[1fr_360px]">
+      <div>
+      <Link to="/careers" className="mb-5 inline-block text-sm text-muted-foreground hover:text-primary hover:underline">
         ← Back to open roles
       </Link>
-      <h1 className="mb-1 text-2xl font-semibold">{posting.title}</h1>
-      <p className="mb-6 text-sm text-muted-foreground">
+      <h1 className="font-logotype mb-2 text-4xl font-medium tracking-tight">{posting.title}</h1>
+      <p className="mb-8 text-sm text-muted-foreground">
         {posting.location} · {posting.openings} opening{posting.openings === 1 ? "" : "s"}
       </p>
-      <p className="mb-8 whitespace-pre-line text-sm leading-relaxed">{posting.description}</p>
+      <div className="rounded-2xl border border-border/70 bg-card p-6 shadow-card">
+        <p className="whitespace-pre-line text-sm leading-7 text-foreground/85">{posting.description}</p>
+      </div>
+      </div>
 
-      <Card>
+      <Card className="h-fit shadow-card-hover">
         <CardContent className="pt-6">
-          <h2 className="mb-4 text-lg font-medium">Apply now</h2>
+           <h2 className="mb-1 font-logotype text-2xl font-medium">Make your move.</h2>
+           <p className="mb-5 text-sm text-muted-foreground">Tell us a little about yourself.</p>
           <form
             className="flex flex-col gap-4"
             onSubmit={(e) => {
@@ -140,9 +145,9 @@ export default function CareersDetail() {
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="note">Note (optional)</Label>
-              <textarea
+               <textarea
                 id="note"
-                className="min-h-24 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                 className="min-h-24 rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none transition focus:ring-2 focus:ring-ring"
                 value={form.note}
                 onChange={(e) => setForm({ ...form, note: e.target.value })}
               />

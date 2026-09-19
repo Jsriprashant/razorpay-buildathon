@@ -39,14 +39,14 @@ export default function HrVendorCompanies() {
   });
 
   return (
-    <div>
+    <div className="space-y-6">
       <PageHeader title="Vendor companies" description="The directory of staffing vendors used for engagement requests." />
 
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardContent className="pt-6">
             <div className="mb-4 flex flex-wrap items-center gap-2">
-              <Input placeholder="Search name or contact…" className="h-9 w-56" value={q} onChange={(e) => setQ(e.target.value)} />
+              <Input placeholder="Search name or contact…" className="h-10 w-64 bg-background" value={q} onChange={(e) => setQ(e.target.value)} />
             </div>
             {isLoading && <Skeleton className="h-48 w-full" />}
             {isError && !isLoading && (
@@ -57,15 +57,15 @@ export default function HrVendorCompanies() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
-                    <th className="pb-2 pr-4">Name</th>
+                      <th className="pb-3 pr-4">Name</th>
                     <th className="pb-2 pr-4">Contact</th>
                     <th className="pb-2 pr-4">Email</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {data.map((v) => (
-                    <tr key={v.id} className="border-b border-border/60">
-                      <td className="py-2 pr-4 font-medium">{v.name}</td>
+                   {data.map((v) => (
+                     <tr key={v.id} className="border-b border-border/60 transition-colors hover:bg-accent/40">
+                       <td className="py-3 pr-4 font-semibold">{v.name}</td>
                       <td className="py-2 pr-4">{v.contact_name}</td>
                       <td className="py-2 pr-4">{v.contact_email}</td>
                     </tr>
@@ -78,7 +78,7 @@ export default function HrVendorCompanies() {
 
         <Card>
           <CardContent className="pt-6">
-            <h2 className="mb-4 text-sm font-medium">Add a vendor company</h2>
+            <h2 className="mb-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Add a vendor company</h2>
             <form
               className="flex flex-col gap-3"
               onSubmit={(e) => {

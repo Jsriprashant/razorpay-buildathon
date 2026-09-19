@@ -73,15 +73,15 @@ export default function Requests() {
         }
       />
 
-      <div className="mb-4 flex flex-wrap items-center gap-2">
+      <div className="mb-5 flex flex-wrap items-center gap-2 rounded-2xl border border-border bg-card p-3 shadow-card">
         <Input
           placeholder="Search role or justification…"
-          className="h-9 w-56"
+           className="h-9 w-56 bg-background"
           value={q}
           onChange={(e) => setQ(e.target.value)}
         />
         <select
-          className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+           className="h-9 rounded-xl border border-input bg-background px-3 text-sm"
           value={status}
           onChange={(e) => setStatus(e.target.value as RequestStatus | "ALL")}
         >
@@ -92,7 +92,7 @@ export default function Requests() {
           ))}
         </select>
         <select
-          className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+           className="h-9 rounded-xl border border-input bg-background px-3 text-sm"
           value={type}
           onChange={(e) => setType(e.target.value as RequestType | "ALL")}
         >
@@ -103,7 +103,7 @@ export default function Requests() {
           ))}
         </select>
         <select
-          className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+           className="h-9 rounded-xl border border-input bg-background px-3 text-sm"
           value={sort}
           onChange={(e) => setSort(e.target.value)}
         >
@@ -115,7 +115,7 @@ export default function Requests() {
         </select>
       </div>
 
-      {isLoading && <Skeleton className="h-64 w-full" />}
+      {isLoading && <Skeleton className="h-64 w-full rounded-2xl" />}
 
       {!isLoading && (!data || data.length === 0) && (
         <EmptyState
@@ -134,7 +134,7 @@ export default function Requests() {
           <CardContent className="overflow-x-auto pt-6">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
+                <tr className="border-b border-border text-left text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                   <th className="pb-2 pr-4">Role</th>
                   <th className="pb-2 pr-4">Type</th>
                   <th className="pb-2 pr-4">Qty</th>
@@ -146,7 +146,7 @@ export default function Requests() {
               </thead>
               <tbody>
                 {data.map((r) => (
-                  <tr key={r.id} className="border-b border-border/60 hover:bg-accent/40">
+                  <tr key={r.id} className="border-b border-border/60 transition-colors hover:bg-accent/40">
                     <td className="py-2 pr-4">
                       <Link to={`/requests/${r.id}`} className="font-medium text-foreground hover:underline">
                         {r.role_title}

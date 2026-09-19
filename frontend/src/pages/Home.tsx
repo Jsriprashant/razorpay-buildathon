@@ -1,5 +1,18 @@
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import {
+  AlertTriangle,
+  Banknote,
+  BarChart3,
+  Briefcase,
+  Building2,
+  CalendarClock,
+  LineChart,
+  PiggyBank,
+  Users,
+  Wallet,
+  type LucideIcon,
+} from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -7,6 +20,21 @@ import { HomeChecklist } from "@/components/layout/HomeChecklist";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api";
 import type { KpiOut } from "@/types";
+
+const CARD_ICONS: Record<string, LucideIcon> = {
+  headcount_vs_plan: Users,
+  cost_this_month: Wallet,
+  plan_this_month: CalendarClock,
+  variance: BarChart3,
+  available_budget: PiggyBank,
+  unspent_earlier: Banknote,
+  ytd_actual_vs_plan: BarChart3,
+  year_end_outlook: LineChart,
+  pipeline: Briefcase,
+  open_positions: Briefcase,
+  vendor_expiring: Building2,
+  unresolved_recon_flags: AlertTriangle,
+};
 
 export default function Home() {
   const { user } = useAuth();
@@ -30,13 +58,17 @@ export default function Home() {
         <>
           <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {data.cards.map((card) => {
+              const Icon = CARD_ICONS[card.key] ?? BarChart3;
               const content = (
-                <Card className="h-full transition-colors hover:border-primary/40" title={card.formula}>
-                  <CardHeader className="pb-2">
+                <Card className="h-full hover:shadow-card-hover" title={card.formula}>
+                  <CardHeader className="flex-row items-start justify-between space-y-0 pb-2">
                     <CardTitle>{card.label}</CardTitle>
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                      <Icon className="h-4 w-4" />
+                    </div>
                   </CardHeader>
-                  <CardContent>
-                    <p className="text-xl font-semibold text-foreground">{card.display}</p>
+                  <CardContent className="pt-0">
+                    <p className="text-2xl font-semibold tracking-tight text-foreground">{card.display}</p>
                     {card.secondary && <p className="mt-1 text-xs text-muted-foreground">{card.secondary}</p>}
                   </CardContent>
                 </Card>

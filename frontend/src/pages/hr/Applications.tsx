@@ -59,14 +59,14 @@ export default function HrApplications() {
   });
 
   return (
-    <div>
+    <div className="space-y-6">
       <PageHeader title="Applications" description="Review applicants for open postings and hire when ready." />
 
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <Input placeholder="Search name or email…" className="h-9 w-56" value={q} onChange={(e) => setQ(e.target.value)} />
+      <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-border/70 bg-card p-3 shadow-card">
+        <Input placeholder="Search name or email…" className="h-10 w-64 bg-background" value={q} onChange={(e) => setQ(e.target.value)} />
       </div>
 
-      {error && <p className="mb-4 text-sm text-destructive">{error}</p>}
+      {error && <p className="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</p>}
 
       {isLoading && <Skeleton className="h-64 w-full" />}
 
@@ -79,12 +79,12 @@ export default function HrApplications() {
       {!isLoading && data && data.length > 0 && (
         <div className="grid gap-4 md:grid-cols-4">
           {COLUMNS.map((col) => (
-            <div key={col.status} className="flex flex-col gap-3">
-              <p className="text-xs font-semibold uppercase text-muted-foreground">{col.title}</p>
+            <div key={col.status} className="flex min-h-48 flex-col gap-3 rounded-2xl bg-muted/40 p-3">
+              <p className="px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{col.title}</p>
               {data
                 .filter((a) => a.status === col.status)
                 .map((a) => (
-                  <Card key={a.id}>
+                  <Card key={a.id} className="transition-shadow hover:shadow-card-hover">
                     <CardContent className="flex flex-col gap-2 pt-4">
                       <p className="font-medium">{a.name}</p>
                       <p className="text-xs text-muted-foreground">{a.posting_title}</p>

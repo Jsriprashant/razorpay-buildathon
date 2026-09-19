@@ -46,7 +46,7 @@ export default function RequestDetail() {
     return (
       <div>
         <PageHeader title="Request" />
-        <Skeleton className="h-64 w-full" />
+         <Skeleton className="h-64 w-full rounded-2xl" />
       </div>
     );
   }
@@ -98,10 +98,10 @@ export default function RequestDetail() {
         }
       />
 
-      {error && <p className="mb-4 text-sm text-destructive">{error}</p>}
+      {error && <div className="mb-5 rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">{error}</div>}
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
+        <Card className="lg:col-span-2 shadow-card-hover">
           <CardContent className="flex flex-col gap-4 pt-6">
             <div className="flex items-center gap-2">
               <StatusBadge status={req.status} />
@@ -109,23 +109,23 @@ export default function RequestDetail() {
               {req.budget_fit && <StatusBadge status={req.budget_fit} />}
             </div>
 
-            <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+             <dl className="grid grid-cols-2 gap-x-6 gap-y-4 rounded-2xl bg-muted/40 p-4 text-sm">
               <div>
-                <dt className="text-xs uppercase text-muted-foreground">Quantity</dt>
+                 <dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Quantity</dt>
                 <dd>{req.quantity}</dd>
               </div>
               <div>
-                <dt className="text-xs uppercase text-muted-foreground">Target start</dt>
+                     <dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Target start</dt>
                 <dd>{req.target_start_date}</dd>
               </div>
               {req.type === "FTE" ? (
                 <>
                   <div>
-                    <dt className="text-xs uppercase text-muted-foreground">Grade</dt>
+                     <dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Grade</dt>
                     <dd>{req.grade}</dd>
                   </div>
                   <div>
-                    <dt className="text-xs uppercase text-muted-foreground">Annual salary</dt>
+                     <dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Annual salary</dt>
                     <dd>{req.annual_salary_cents ? formatCents(req.annual_salary_cents, currency) : "—"}</dd>
                   </div>
                 </>
@@ -162,14 +162,14 @@ export default function RequestDetail() {
             )}
 
             {req.decision_note && (
-              <div className="rounded-md border border-border bg-muted/40 px-4 py-3 text-sm">
+               <div className="rounded-2xl border border-border bg-muted/40 px-4 py-3 text-sm">
                 <span className="font-medium">HR note: </span>
                 {req.decision_note}
               </div>
             )}
 
             {req.type === "FTE" && req.posting_slug && (
-              <div className="rounded-md border border-border px-4 py-3 text-sm">
+               <div className="rounded-2xl border border-border bg-card px-4 py-3 text-sm">
                 <span className="text-muted-foreground">Job posting: </span>
                 <Link to={`/careers/${req.posting_slug}`} className="font-medium hover:underline" target="_blank">
                   /careers/{req.posting_slug}
@@ -193,7 +193,7 @@ export default function RequestDetail() {
             )}
 
             {req.type === "VENDOR" && req.vendor_engagement_status && (
-              <div className="rounded-md border border-border px-4 py-3 text-sm">
+               <div className="rounded-2xl border border-border bg-card px-4 py-3 text-sm">
                 <span className="text-muted-foreground">Vendor engagement: </span>
                 <StatusBadge status={req.vendor_engagement_status} />
               </div>
@@ -204,7 +204,7 @@ export default function RequestDetail() {
                 <p className="mb-2 text-xs uppercase text-muted-foreground">Messages to vendor</p>
                 <ul className="flex flex-col gap-2">
                   {req.vendor_messages.map((m) => (
-                    <li key={m.id} className="rounded-md border border-border px-3 py-2 text-sm">
+                     <li key={m.id} className="rounded-xl border border-border bg-muted/30 px-3 py-2 text-sm">
                       <p className="font-medium">{m.subject}</p>
                       <p className="text-xs text-muted-foreground">
                         To {m.to_email} · {new Date(m.sent_at).toLocaleString()}
@@ -220,10 +220,10 @@ export default function RequestDetail() {
 
         <Card>
           <CardContent className="pt-6">
-            <p className="mb-3 text-xs uppercase text-muted-foreground">Timeline</p>
+            <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Timeline</p>
             <ol className="flex flex-col gap-4">
               {req.approval_events.map((e) => (
-                <li key={e.id} className="border-l-2 border-border pl-3 text-sm">
+                <li key={e.id} className="border-l-2 border-primary/30 pl-3 text-sm transition-colors hover:border-primary">
                   <p className="font-medium">{e.action.replace(/_/g, " ")}</p>
                   <p className="text-xs text-muted-foreground">
                     {e.actor_name} · {new Date(e.at).toLocaleString()}

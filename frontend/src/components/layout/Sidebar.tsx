@@ -51,10 +51,10 @@ function NavSection({ items }: { items: NavItem[] }) {
           to={to}
           className={({ isActive }) =>
             cn(
-              "flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+              "flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-colors",
               isActive
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                ? "bg-sidebar-active text-sidebar-active-foreground shadow-card"
+                : "text-sidebar-foreground hover:bg-white/60 hover:text-sidebar-active-foreground",
             )
           }
         >
@@ -69,17 +69,19 @@ function NavSection({ items }: { items: NavItem[] }) {
 export function Sidebar() {
   const { user } = useAuth();
   return (
-    <aside className="hidden w-60 shrink-0 flex-col gap-6 border-r border-border bg-card px-3 py-4 md:flex">
+    <aside className="hidden w-64 shrink-0 flex-col gap-6 border-r border-sidebar-border bg-sidebar px-3 py-5 md:flex">
       <div className="px-3">
-        <span className="text-lg font-bold tracking-tight text-foreground">HeadcountHQ</span>
+        <span className="font-logotype text-xl font-medium tracking-tight text-foreground">HeadcountHQ</span>
       </div>
-      <NavSection items={MAIN_NAV} />
-      {user?.role === "HR" && (
-        <div>
-          <p className="mb-1 px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">HR</p>
-          <NavSection items={HR_NAV} />
-        </div>
-      )}
+      <div className="flex-1 overflow-y-auto">
+        <NavSection items={MAIN_NAV} />
+        {user?.role === "HR" && (
+          <div className="mt-6">
+            <p className="mb-1 px-3 text-xs font-semibold uppercase tracking-wide text-sidebar-foreground/60">HR</p>
+            <NavSection items={HR_NAV} />
+          </div>
+        )}
+      </div>
     </aside>
   );
 }

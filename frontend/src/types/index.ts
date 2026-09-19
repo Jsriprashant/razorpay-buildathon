@@ -27,6 +27,38 @@ export interface Settings {
   demo_today: string | null;
 }
 
+export type ReasoningEffort = "none" | "low" | "medium" | "high" | "max";
+
+export interface AssistantMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+export interface PendingAssistantAction {
+  kind: "create_hiring_request" | "update_plan_month" | "submit_hiring_request";
+  title: string;
+  description: string;
+  payload: Record<string, unknown>;
+}
+
+export interface AssistantChatResponse {
+  answer: string;
+  model_used: string;
+  tool_activity: Array<{ name: string; label: string }>;
+  pending_action: PendingAssistantAction | null;
+}
+
+export interface AssistantActionResult {
+  message: string;
+  link: string | null;
+  entity_id: number | null;
+}
+
+export interface AssistantConfig {
+  models: Array<{ id: string; label: string; supports_reasoning: boolean }>;
+  default_model: string;
+}
+
 export interface Worker {
   id: number;
   worker_id: string;

@@ -27,14 +27,14 @@ export default function Vendors() {
     <div>
       <PageHeader title="Vendor engagements" description="Contractor engagements for your team, active and upcoming." />
 
-      <div className="mb-4 flex flex-wrap items-center gap-2">
+      <div className="mb-5 flex flex-wrap items-center gap-2 rounded-2xl border border-border bg-card p-3 shadow-card">
         <Input placeholder="Search role or vendor…" className="h-9 w-56" value={q} onChange={(e) => setQ(e.target.value)} />
       </div>
 
-      {isLoading && <Skeleton className="h-64 w-full" />}
+      {isLoading && <Skeleton className="h-64 w-full rounded-2xl" />}
 
       {isError && !isLoading && (
-        <p className="text-sm text-destructive">Could not load vendor engagements. Please try again.</p>
+        <div className="rounded-2xl border border-destructive/20 bg-destructive/5 p-5 text-sm text-destructive">Could not load vendor engagements. Please try again.</div>
       )}
 
       {!isLoading && !isError && (!data || data.length === 0) && (
@@ -46,7 +46,7 @@ export default function Vendors() {
           <CardContent className="overflow-x-auto pt-6">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
+                <tr className="border-b border-border text-left text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                   <th className="pb-2 pr-4">Role</th>
                   <th className="pb-2 pr-4">Vendor</th>
                   <th className="pb-2 pr-4">Headcount</th>
@@ -58,7 +58,7 @@ export default function Vendors() {
               </thead>
               <tbody>
                 {data.map((v) => (
-                  <tr key={v.id} className="border-b border-border/60">
+                  <tr key={v.id} className="border-b border-border/60 transition-colors hover:bg-accent/40">
                     <td className="py-2 pr-4 font-medium">{v.role_title}</td>
                     <td className="py-2 pr-4">{v.vendor_company_name}</td>
                     <td className="py-2 pr-4">{v.headcount}</td>

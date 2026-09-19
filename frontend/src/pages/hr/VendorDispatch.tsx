@@ -70,14 +70,14 @@ export default function HrVendorDispatch() {
   const active = data?.find((e) => e.id === openId) ?? null;
 
   return (
-    <div>
+    <div className="space-y-6">
       <PageHeader title="Vendor dispatch" description="Send engagement details to vendors and track their response." />
 
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <Input placeholder="Search role or vendor…" className="h-9 w-56" value={q} onChange={(e) => setQ(e.target.value)} />
+      <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-border/70 bg-card p-3 shadow-card">
+        <Input placeholder="Search role or vendor…" className="h-10 w-64 bg-background" value={q} onChange={(e) => setQ(e.target.value)} />
       </div>
 
-      {error && !active && <p className="mb-4 text-sm text-destructive">{error}</p>}
+      {error && !active && <p className="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</p>}
 
       {isLoading && <Skeleton className="h-64 w-full" />}
 
@@ -91,7 +91,7 @@ export default function HrVendorDispatch() {
 
       <div className="flex flex-col gap-3">
         {data?.map((e) => (
-          <Card key={e.id}>
+          <Card key={e.id} className="transition-shadow hover:shadow-card-hover">
             <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-6">
               <div>
                 <p className="font-medium">{e.role_title}</p>
@@ -126,7 +126,7 @@ export default function HrVendorDispatch() {
 
       {active && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <Card className="w-full max-w-lg">
+          <Card className="w-full max-w-lg shadow-popover">
             <CardContent className="flex flex-col gap-4 pt-6">
               <h2 className="text-lg font-medium">Send to {active.vendor_company_name}</h2>
               <p className="text-xs text-muted-foreground">To: {active.vendor_contact_email}</p>

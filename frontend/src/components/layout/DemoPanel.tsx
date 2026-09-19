@@ -56,7 +56,7 @@ export function DemoPanel() {
       </Button>
 
       {open && (
-        <div className="absolute right-0 z-40 mt-2 w-72 rounded-lg border border-border bg-card p-3 shadow-lg">
+        <div className="absolute right-0 z-40 mt-2 w-72 rounded-2xl border border-border bg-card p-4 shadow-popover">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Simulated date</p>
           <p className="mt-1 text-sm font-medium text-foreground">{demoToday ?? "Real clock"}</p>
 

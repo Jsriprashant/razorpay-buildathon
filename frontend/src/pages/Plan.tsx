@@ -87,14 +87,14 @@ export default function Plan() {
         }
       />
 
-      {isLoading && <Skeleton className="h-96 w-full" />}
+      {isLoading && <Skeleton className="h-96 w-full rounded-2xl" />}
 
       {!isLoading && rows && (
         <Card>
           <CardContent className="overflow-x-auto pt-6">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
+                <tr className="border-b border-border text-left text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                   <th className="pb-2 pr-4">Month</th>
                   <th className="pb-2 pr-4">Planned FTE HC</th>
                   <th className="pb-2 pr-4">Planned vendor HC</th>
@@ -104,7 +104,7 @@ export default function Plan() {
               </thead>
               <tbody>
                 {rows.map((row, i) => (
-                  <tr key={row.month_start} className="border-b border-border/60">
+                  <tr key={row.month_start} className="border-b border-border/60 transition-colors hover:bg-accent/40">
                     <td className="py-2 pr-4 font-medium">{row.month_start}</td>
                     <td className="py-2 pr-4">
                       <Input

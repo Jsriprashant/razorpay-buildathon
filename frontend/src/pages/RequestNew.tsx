@@ -148,7 +148,7 @@ export default function RequestNew() {
     return (
       <div>
         <PageHeader title="Edit request" />
-        <Skeleton className="h-96 w-full max-w-2xl" />
+        <Skeleton className="h-96 w-full max-w-2xl rounded-2xl" />
       </div>
     );
   }
@@ -162,7 +162,7 @@ export default function RequestNew() {
         description="Raise an FTE requisition or a vendor engagement request."
       />
 
-      <Card className="max-w-2xl">
+      <Card className="max-w-3xl shadow-card-hover">
         <CardContent className="pt-6">
           <form className="flex flex-col gap-5" onSubmit={(e) => handleSubmit(e, false)}>
             <div className="flex flex-col gap-1.5">
@@ -221,7 +221,7 @@ export default function RequestNew() {
                   <Label htmlFor="grade">Grade</Label>
                   <select
                     id="grade"
-                    className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                     className="h-10 rounded-xl border border-input bg-background px-3 text-sm"
                     value={grade}
                     onChange={(e) => setGrade(e.target.value)}
                   >
@@ -251,7 +251,7 @@ export default function RequestNew() {
                   <Label htmlFor="vendor_company">Vendor company</Label>
                   <select
                     id="vendor_company"
-                    className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                     className="h-10 rounded-xl border border-input bg-background px-3 text-sm"
                     value={vendorCompanyId}
                     onChange={(e) => setVendorCompanyId(e.target.value)}
                     required
@@ -296,7 +296,7 @@ export default function RequestNew() {
                   <Label htmlFor="end_date">End date</Label>
                   <Input id="end_date" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} required />
                 </div>
-                <div className="rounded-md border border-border bg-muted/40 px-4 py-3 text-sm">
+                 <div className="rounded-2xl border border-primary/15 bg-accent/50 px-4 py-3 text-sm">
                   <span className="text-muted-foreground">Total contract value: </span>
                   <span className="font-semibold text-foreground">
                     {contractValueCents !== null ? formatCents(contractValueCents, currency) : "—"}
@@ -309,7 +309,7 @@ export default function RequestNew() {
               <Label htmlFor="justification">Justification</Label>
               <textarea
                 id="justification"
-                className="min-h-24 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                 className="min-h-24 rounded-xl border border-input bg-background px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 value={justification}
                 onChange={(e) => setJustification(e.target.value)}
               />

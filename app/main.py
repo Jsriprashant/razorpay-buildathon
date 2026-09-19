@@ -12,6 +12,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.routers import applications as applications_router
+from app.routers import assistant as assistant_router
 from app.routers import auth as auth_router
 from app.routers import cycles as cycles_router
 from app.routers import demo as demo_router
@@ -38,6 +39,7 @@ app.add_middleware(SessionMiddleware, secret_key=session_secret, same_site="lax"
 # sub-application) so that /api/docs's OpenAPI schema actually documents
 # every /api/v1 route.
 app.include_router(auth_router.router, prefix="/api/v1")
+app.include_router(assistant_router.router, prefix="/api/v1")
 app.include_router(settings_router.router, prefix="/api/v1")
 app.include_router(roster_router.router, prefix="/api/v1")
 app.include_router(recon_router.router, prefix="/api/v1")
