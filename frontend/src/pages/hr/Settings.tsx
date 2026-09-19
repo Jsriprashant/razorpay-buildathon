@@ -49,7 +49,7 @@ export default function HrSettings() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Settings" description="Anything configurable in HeadcountHQ lives here — nothing is hardcoded." />
+      <PageHeader title="Settings" description="Anything configurable in CONTINUUM lives here — nothing is hardcoded." />
       <Card className="max-w-2xl">
         <CardContent className="pt-6">
           {isLoading && <Skeleton className="h-64 w-full" />}

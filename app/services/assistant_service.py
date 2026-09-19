@@ -1,4 +1,4 @@
-"""OpenAI Responses API harness for the HeadcountHQ copilot."""
+"""OpenAI Responses API harness for the CONTINUUM copilot."""
 from __future__ import annotations
 
 import json
@@ -69,7 +69,7 @@ def _choose_auto_model(message: str, reasoning_effort: str) -> str:
 
 
 def _system_prompt(user: AppUser, team_id: int, message: str) -> str:
-    return f"""You are Headcount Copilot, embedded in HeadcountHQ.
+    return f"""You are CONTINUUM Copilot, embedded in CONTINUUM.
 
 User context:
 - Name: {user.name}
@@ -77,7 +77,7 @@ User context:
 - Scoped team id: {team_id}
 
 Your job is to explain the user's live workforce data, surface useful insights,
-compare deterministic forecast scenarios, and help complete HeadcountHQ work.
+compare deterministic forecast scenarios, and help complete CONTINUUM work.
 
 Rules:
 1. Use tools whenever the answer depends on live product data. Never invent
@@ -169,7 +169,7 @@ def chat_stream(
     """Stream progress, tool activity, answer Markdown, and action proposals."""
     api_key = os.environ.get("OPENAI_API_KEY")
     if not api_key:
-        yield _sse("error", {"message": "Headcount Copilot is not configured."})
+        yield _sse("error", {"message": "CONTINUUM Copilot is not configured."})
         return
     if payload.model not in ALLOWED_MODELS:
         yield _sse("error", {"message": "Unsupported assistant model"})
@@ -321,7 +321,7 @@ def chat(db: Session, user: AppUser, payload: AssistantChatRequest) -> Assistant
     if not api_key:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Headcount Copilot is not configured. Add OPENAI_API_KEY to Replit Secrets.",
+            detail="CONTINUUM Copilot is not configured. Add OPENAI_API_KEY to Replit Secrets.",
         )
 
     if payload.model not in ALLOWED_MODELS:

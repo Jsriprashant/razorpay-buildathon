@@ -494,7 +494,7 @@ export function AssistantCopilot() {
         <Button
           className="fixed bottom-5 right-5 z-50 h-12 rounded-full px-5 shadow-card-hover"
           onClick={() => setOpen(true)}
-          aria-label="Open Headcount Copilot"
+          aria-label="Open CONTINUUM Copilot"
         >
           <Sparkles className="h-4 w-4" />
           Ask Copilot
@@ -508,7 +508,7 @@ export function AssistantCopilot() {
             width: `min(${windowSize.width}px, calc(100vw - 40px))`,
             height: `min(${windowSize.height}px, calc(100vh - 24px))`,
           }}
-          aria-label="Headcount Copilot"
+          aria-label="CONTINUUM Copilot"
         >
           <button
             type="button"
@@ -526,7 +526,7 @@ export function AssistantCopilot() {
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <p className="text-sm font-semibold text-foreground">Headcount Copilot</p>
+                  <p className="text-sm font-semibold text-foreground">CONTINUUM Copilot</p>
                   <span className="flex items-center gap-1 rounded-full bg-success/10 px-2 py-0.5 text-[10px] font-medium text-success">
                     <span className="h-1.5 w-1.5 rounded-full bg-success" />
                     Live data

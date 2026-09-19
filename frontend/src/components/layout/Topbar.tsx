@@ -31,7 +31,7 @@ export function Topbar() {
   return (
     <header className="flex h-16 items-center justify-between border-b border-border bg-card px-4 lg:px-6">
       <div className="flex items-center gap-3 md:hidden">
-        <span className="font-logotype text-lg font-medium tracking-tight text-foreground">HeadcountHQ</span>
+        <span className="font-logotype text-lg font-medium tracking-tight text-foreground">CONTINUUM</span>
       </div>
       <div className="hidden text-sm text-muted-foreground md:block">{user?.team_name ?? "All teams"}</div>
       <div className="flex flex-1 items-center justify-end gap-2">

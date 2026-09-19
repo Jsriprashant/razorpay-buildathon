@@ -1,4 +1,4 @@
-# HeadcountHQ
+# CONTINUUM
 
 A Workday-replacement app for headcount, hiring requests, vendor contracts and
 workforce forecasting — explicitly **not** payroll or benefits. Managers plan
@@ -117,7 +117,7 @@ you can see every feature without setting anything up first.
   labelled DEMO; anything not yet built is an explicit empty state with a
   next action, not a stub that pretends to work.
 
-## Headcount Copilot
+## CONTINUUM Copilot
 
 Authenticated users can open **Ask Copilot** from the bottom-right corner.
 It can explain live KPIs, roster and request data, inspect the forecast, run

@@ -28,7 +28,7 @@ from app.routers import roster as roster_router
 from app.routers import settings as settings_router
 from app.routers import vendors as vendors_router
 
-app = FastAPI(title="HeadcountHQ API", docs_url="/api/docs", openapi_url="/api/openapi.json")
+app = FastAPI(title="CONTINUUM API", docs_url="/api/docs", openapi_url="/api/openapi.json")
 
 session_secret = os.environ.get("SESSION_SECRET")
 if not session_secret:

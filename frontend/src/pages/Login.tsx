@@ -42,7 +42,7 @@ export default function Login() {
       <div className="flex flex-1 items-center justify-center p-6">
         <div className="w-full max-w-md">
           <div className="mb-8 text-center">
-            <span className="font-logotype text-3xl font-medium tracking-tight text-foreground">HeadcountHQ</span>
+            <span className="font-logotype text-3xl font-medium tracking-tight text-foreground">CONTINUUM</span>
             <p className="mt-2 text-sm text-muted-foreground">Headcount planning, reconciliation and hiring in one place.</p>
           </div>
           <Card className="shadow-card-hover">

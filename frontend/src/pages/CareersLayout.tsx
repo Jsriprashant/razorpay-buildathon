@@ -6,7 +6,7 @@ export default function CareersLayout() {
     <div className="flex min-h-screen flex-col bg-background">
       <header className="border-b border-border/70 bg-card/90 px-6 py-5 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between">
-          <span className="font-logotype text-xl font-medium tracking-tight text-foreground">HeadcountHQ</span>
+          <span className="font-logotype text-xl font-medium tracking-tight text-foreground">CONTINUUM</span>
           <span className="rounded-full bg-accent px-3 py-1 text-xs font-semibold text-accent-foreground">Careers</span>
         </div>
       </header>

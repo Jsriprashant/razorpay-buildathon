@@ -1,4 +1,4 @@
-# HeadcountHQ
+# CONTINUUM
 
 A Workday-replacement app for headcount, hiring requests, vendor contracts and
 forecasting (explicitly NOT payroll/benefits). Built as a single Replit web

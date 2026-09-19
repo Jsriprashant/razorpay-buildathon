@@ -1,4 +1,4 @@
-"""Product-specific tools exposed to the HeadcountHQ copilot.
+"""Product-specific tools exposed to the CONTINUUM copilot.
 
 Read tools call the same deterministic services as the UI. Write tools only
 prepare a PendingAction; a separate authenticated confirmation endpoint

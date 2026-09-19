@@ -115,10 +115,10 @@ export function Sidebar() {
     >
       <div className={cn("flex items-center gap-2 px-3", collapsed && "justify-center px-0")}>
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-blue text-sm font-bold text-white shadow-card">
-          H
+          C
         </div>
         {!collapsed && (
-          <span className="font-logotype text-xl font-medium tracking-tight text-foreground">HeadcountHQ</span>
+          <span className="font-logotype text-xl font-medium tracking-tight text-foreground">CONTINUUM</span>
         )}
       </div>
 

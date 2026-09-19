@@ -20,7 +20,7 @@ export default function CareersList() {
   return (
     <div className="mx-auto max-w-5xl">
       <div className="mb-10 max-w-2xl">
-        <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-primary">Join HeadcountHQ</p>
+        <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-primary">Join CONTINUUM</p>
         <h1 className="font-logotype text-4xl font-medium tracking-tight text-foreground sm:text-5xl">Work that makes room for people.</h1>
         <p className="mt-4 text-base leading-relaxed text-muted-foreground">Bring your sharpest thinking to the operating system for thoughtful workforce planning.</p>
       </div>

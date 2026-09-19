@@ -134,7 +134,7 @@ def default_message(db: Session, eng: VendorEngagement) -> tuple[str, str]:
         f"- Headcount: {eng.headcount}\n"
         f"- Rate: {eng.hourly_rate_cents / 100:.2f}/hr, {eng.hours_per_month} hrs/month\n"
         f"- Dates: {eng.start_date.isoformat()} to {end_txt}\n\n"
-        f"Thanks,\n{team.name if team else 'HeadcountHQ'} HR"
+        f"Thanks,\n{team.name if team else 'CONTINUUM'} HR"
     )
     return subject, body
 
