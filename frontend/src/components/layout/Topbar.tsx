@@ -29,11 +29,16 @@ export function Topbar() {
     : "";
 
   return (
-    <header className="flex h-16 items-center justify-between border-b border-border bg-card px-4 lg:px-6">
-      <div className="flex items-center gap-3 md:hidden">
-        <span className="font-logotype text-lg font-medium tracking-tight text-foreground">CONTINUUM</span>
+    <header className="flex h-16 items-center justify-between gap-3 border-b border-border bg-card px-4 lg:px-6">
+      <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-blue text-xs font-bold text-white shadow-card">
+            C
+          </div>
+          <span className="font-logotype text-lg font-medium tracking-tight text-foreground">CONTINUUM</span>
+        </div>
+        <span className="hidden text-sm text-muted-foreground md:inline">{user?.team_name ?? "All teams"}</span>
       </div>
-      <div className="hidden text-sm text-muted-foreground md:block">{user?.team_name ?? "All teams"}</div>
       <div className="flex flex-1 items-center justify-end gap-2">
         <DemoPanel />
         <NotificationBell />
