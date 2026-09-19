@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Area, CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
@@ -18,6 +18,7 @@ export default function Forecast() {
   const navigate = useNavigate();
   const [showDisclosure, setShowDisclosure] = useState(false);
   const [whatIf, setWhatIf] = useState({
+    hiring_pct_adjustment: 0,
     hiring_delay_months: 0,
     attrition_pct_override: "",
     hiring_freeze_from_month: "",
@@ -35,8 +36,10 @@ export default function Forecast() {
   const whatIfMutation = useMutation({
     mutationFn: () =>
       api.post<WhatIfOut>("/forecast/what-if", {
+        hiring_pct_adjustment: whatIf.hiring_pct_adjustment,
         hiring_delay_months: whatIf.hiring_delay_months,
-        attrition_pct_override: whatIf.attrition_pct_override === "" ? null : Number(whatIf.attrition_pct_override),
+        attrition_pct_override:
+          whatIf.attrition_pct_override === "" ? null : Number(whatIf.attrition_pct_override) / 100,
         hiring_freeze_from_month: whatIf.hiring_freeze_from_month === "" ? null : `${whatIf.hiring_freeze_from_month}-01`,
         extra_hires: whatIf.extra_hires,
         extra_hires_type: whatIf.extra_hires_type,
@@ -46,6 +49,34 @@ export default function Forecast() {
       }),
   });
 
+  useEffect(() => {
+    if (settings && whatIf.attrition_pct_override === "") {
+      setWhatIf((current) => ({
+        ...current,
+        attrition_pct_override: String(settings.attrition_pct_monthly * 100),
+      }));
+    }
+  }, [settings, whatIf.attrition_pct_override]);
+
+  useEffect(() => {
+    if (!data || whatIf.attrition_pct_override === "") return;
+    const timer = window.setTimeout(() => whatIfMutation.mutate(), 300);
+    return () => window.clearTimeout(timer);
+    // The individual primitive values make scenario changes explicit and
+    // avoid rerunning because the mutation object itself changed identity.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    data,
+    whatIf.hiring_pct_adjustment,
+    whatIf.hiring_delay_months,
+    whatIf.attrition_pct_override,
+    whatIf.hiring_freeze_from_month,
+    whatIf.extra_hires,
+    whatIf.extra_hires_type,
+    whatIf.extra_hires_start_month,
+    whatIf.extra_hires_unit_cost_cents,
+  ]);
+
   function createRequest(prefill: Record<string, unknown>) {
     const params = new URLSearchParams();
     Object.entries(prefill).forEach(([k, v]) => {
@@ -54,19 +85,39 @@ export default function Forecast() {
     navigate(`/requests/new?${params.toString()}`);
   }
 
-  const chartData = data?.months.map((m) => ({
-    month: m.month_start.slice(0, 7),
-    Plan: m.plan_fte_hc,
-    Projected: m.projected_fte_hc,
-    "With suggestions": m.with_suggestions_fte_hc,
-  }));
+  const scenarioByMonth = useMemo(
+    () => new Map(whatIfMutation.data?.months.map((month) => [month.month_start, month]) ?? []),
+    [whatIfMutation.data],
+  );
 
-  const costChartData = data?.months.map((m) => ({
-    month: m.month_start.slice(0, 7),
-    "Plan cost": m.plan_cost_cents / 100,
-    "No action": m.no_action_cost_cents / 100,
-    "With suggestions": m.with_suggestions_cost_cents / 100,
-  }));
+  const scenarioChanged =
+    whatIf.hiring_pct_adjustment !== 0 ||
+    Number(whatIf.attrition_pct_override) !== (settings?.attrition_pct_monthly ?? 0) * 100 ||
+    whatIf.hiring_delay_months !== 0 ||
+    whatIf.hiring_freeze_from_month !== "" ||
+    whatIf.extra_hires !== 0;
+
+  const chartData = data?.months.map((m) => {
+    const scenario = scenarioByMonth.get(m.month_start);
+    return {
+      month: m.month_start.slice(0, 7),
+      Plan: m.plan_fte_hc,
+      "No action": m.projected_fte_hc,
+      "With suggestions": m.with_suggestions_fte_hc,
+      ...(scenarioChanged && scenario ? { "Your what-if": scenario.whatif_fte_hc } : {}),
+    };
+  });
+
+  const costChartData = data?.months.map((m) => {
+    const scenario = scenarioByMonth.get(m.month_start);
+    return {
+      month: m.month_start.slice(0, 7),
+      "Plan cost": m.plan_cost_cents / 100,
+      "No action": m.no_action_cost_cents / 100,
+      "With suggestions": m.with_suggestions_cost_cents / 100,
+      ...(scenarioChanged && scenario ? { "Your what-if": scenario.whatif_cost_cents / 100 } : {}),
+    };
+  });
 
   return (
     <div>
@@ -97,6 +148,32 @@ export default function Forecast() {
 
       {!isLoading && data && data.months.length > 0 && (
         <>
+          <Card className="mb-6 border-primary/15 bg-gradient-blue-soft shadow-card">
+            <CardHeader>
+              <CardTitle>What the three forecast lines mean</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-3 pt-0 sm:grid-cols-3">
+              <div className="rounded-xl border border-border/70 bg-card/80 p-3">
+                <p className="text-sm font-semibold text-primary">Plan</p>
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                  The approved monthly headcount and budget targets saved in your plan.
+                </p>
+              </div>
+              <div className="rounded-xl border border-border/70 bg-card/80 p-3">
+                <p className="text-sm font-semibold text-destructive">No action</p>
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                  The expected result from the current roster, known exits, attrition, approved open positions, and vendor contracts.
+                </p>
+              </div>
+              <div className="rounded-xl border border-border/70 bg-card/80 p-3">
+                <p className="text-sm font-semibold text-success">With suggestions</p>
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                  No action plus every gap-filling request listed below. It aims to match headcount, so it can exceed the budget plan.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
           <Card className="mb-6 shadow-card-hover">
             <CardHeader>
               <CardTitle>Projected FTE headcount vs. plan</CardTitle>
@@ -121,10 +198,13 @@ export default function Forecast() {
                   />
                   <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid hsl(var(--border))", boxShadow: "0 12px 32px -8px rgb(30 27 75 / .18)", fontSize: 12 }} />
                   <Legend wrapperStyle={{ fontSize: 12 }} />
-                  <Area type="monotone" dataKey="Projected" fill="url(#forecastFill)" stroke="none" />
+                  <Area type="monotone" dataKey="No action" fill="url(#forecastFill)" stroke="none" />
                   <Line type="monotone" dataKey="Plan" stroke="hsl(var(--primary))" strokeWidth={2.5} dot={false} />
-                  <Line type="monotone" dataKey="Projected" stroke="hsl(var(--destructive))" strokeWidth={2.5} dot={false} />
+                  <Line type="monotone" dataKey="No action" stroke="hsl(var(--destructive))" strokeWidth={2.5} dot={false} />
                   <Line type="monotone" dataKey="With suggestions" stroke="hsl(var(--success))" strokeDasharray="5 5" strokeWidth={2.5} dot={false} />
+                  {scenarioChanged && (
+                    <Line type="monotone" dataKey="Your what-if" stroke="hsl(var(--warning))" strokeWidth={3} dot={false} />
+                  )}
                 </LineChart>
               </ResponsiveContainer>
             </CardContent>
@@ -151,14 +231,21 @@ export default function Forecast() {
                   <Line type="monotone" dataKey="Plan cost" stroke="hsl(var(--primary))" strokeWidth={2.5} dot={false} />
                   <Line type="monotone" dataKey="No action" stroke="hsl(var(--destructive))" strokeWidth={2.5} dot={false} />
                   <Line type="monotone" dataKey="With suggestions" stroke="hsl(var(--success))" strokeDasharray="5 5" strokeWidth={2.5} dot={false} />
+                  {scenarioChanged && (
+                    <Line type="monotone" dataKey="Your what-if" stroke="hsl(var(--warning))" strokeWidth={3} dot={false} />
+                  )}
                 </LineChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
 
-           <Card className="mb-6 shadow-card-hover">
+          <Card className="mb-6 shadow-card-hover">
             <CardHeader>
               <CardTitle>Suggestions</CardTitle>
+               <p className="text-sm leading-5 text-muted-foreground">
+                 Automatically detected from each month&apos;s plan minus its no-action projection. “Urgent” means the
+                 request-by date has already passed after applying the configured lead time.
+               </p>
             </CardHeader>
             <CardContent>
               {data.suggestions.length === 0 ? (
@@ -186,7 +273,11 @@ export default function Forecast() {
                         <td className="py-2 pr-4">
                           {s.request_by}
                           {s.urgent && (
-                            <Badge variant="destructive" className="ml-2">
+                             <Badge
+                               variant="destructive"
+                               className="ml-2"
+                               title="The recommended request-by date has already passed."
+                             >
                               Urgent
                             </Badge>
                           )}
@@ -205,12 +296,75 @@ export default function Forecast() {
             </CardContent>
           </Card>
 
-           <Card className="shadow-card-hover">
+          <Card className="shadow-card-hover">
             <CardHeader>
-              <CardTitle>What-if</CardTitle>
+               <CardTitle>Live what-if scenario</CardTitle>
+               <p className="text-sm leading-5 text-muted-foreground">
+                 Move either slider and the amber “Your what-if” lines update automatically. This is a temporary
+                 scenario—it does not change your saved plan or create requests.
+               </p>
             </CardHeader>
             <CardContent>
-              <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+               <div className="mb-6 grid gap-4 rounded-2xl border border-primary/15 bg-gradient-blue-soft p-4 sm:grid-cols-2">
+                 <div>
+                   <div className="mb-2 flex items-center justify-between gap-3">
+                     <Label htmlFor="hiring-adjustment">Approved hiring pipeline</Label>
+                     <span className="font-numeric rounded-full bg-card px-2.5 py-1 text-xs font-bold text-primary shadow-card">
+                       {whatIf.hiring_pct_adjustment > 0 ? "+" : ""}
+                       {whatIf.hiring_pct_adjustment}%
+                     </span>
+                   </div>
+                   <input
+                     id="hiring-adjustment"
+                     type="range"
+                     min="-100"
+                     max="100"
+                     step="10"
+                     value={whatIf.hiring_pct_adjustment}
+                     onChange={(e) => setWhatIf({ ...whatIf, hiring_pct_adjustment: Number(e.target.value) })}
+                     className="h-2 w-full cursor-pointer appearance-none rounded-full bg-muted accent-primary"
+                   />
+                   <div className="mt-1.5 flex justify-between text-[10px] text-muted-foreground">
+                     <span>100% fewer</span>
+                     <span>Current pipeline</span>
+                     <span>100% more</span>
+                   </div>
+                   <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                     Scales approved open positions expected to land by each month.
+                   </p>
+                 </div>
+
+                 <div>
+                   <div className="mb-2 flex items-center justify-between gap-3">
+                     <Label htmlFor="attrition-adjustment">Monthly attrition</Label>
+                     <span className="font-numeric rounded-full bg-card px-2.5 py-1 text-xs font-bold text-primary shadow-card">
+                       {Number(whatIf.attrition_pct_override).toFixed(1)}%
+                     </span>
+                   </div>
+                   <input
+                     id="attrition-adjustment"
+                     type="range"
+                     min="0"
+                     max="10"
+                     step="0.1"
+                     value={whatIf.attrition_pct_override}
+                     onChange={(e) => setWhatIf({ ...whatIf, attrition_pct_override: e.target.value })}
+                     className="h-2 w-full cursor-pointer appearance-none rounded-full bg-muted accent-primary"
+                   />
+                   <div className="mt-1.5 flex justify-between text-[10px] text-muted-foreground">
+                     <span>0%</span>
+                     <span>Monthly employee attrition</span>
+                     <span>10%</span>
+                   </div>
+                   <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                     Overrides the current setting of {((settings?.attrition_pct_monthly ?? 0) * 100).toFixed(1)}% per month.
+                   </p>
+                 </div>
+               </div>
+
+               <div className="mb-4">
+                 <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Advanced scenario controls</p>
+                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <div className="flex flex-col gap-1.5">
                   <Label>Hiring delay (whole months)</Label>
                   <Input
@@ -219,16 +373,6 @@ export default function Forecast() {
                     max="12"
                     value={whatIf.hiring_delay_months}
                     onChange={(e) => setWhatIf({ ...whatIf, hiring_delay_months: Number(e.target.value) })}
-                  />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <Label>Attrition % override</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    placeholder={String(settings?.attrition_pct_monthly ?? 0)}
-                    value={whatIf.attrition_pct_override}
-                    onChange={(e) => setWhatIf({ ...whatIf, attrition_pct_override: e.target.value })}
                   />
                 </div>
                 <div className="flex flex-col gap-1.5">
@@ -278,10 +422,33 @@ export default function Forecast() {
                     onChange={(e) => setWhatIf({ ...whatIf, extra_hires_unit_cost_cents: e.target.value })}
                   />
                 </div>
+                 </div>
               </div>
-              <Button onClick={() => whatIfMutation.mutate()} disabled={whatIfMutation.isPending}>
-                {whatIfMutation.isPending ? "Running…" : "Run what-if"}
-              </Button>
+               <div className="flex items-center justify-between gap-3">
+                 <p className="text-xs text-muted-foreground">
+                   {whatIfMutation.isPending ? "Updating scenario…" : scenarioChanged ? "Scenario applied to both charts." : "Showing the baseline forecast."}
+                 </p>
+                 {scenarioChanged && (
+                   <Button
+                     variant="outline"
+                     size="sm"
+                     onClick={() =>
+                       setWhatIf({
+                         hiring_pct_adjustment: 0,
+                         hiring_delay_months: 0,
+                         attrition_pct_override: String((settings?.attrition_pct_monthly ?? 0) * 100),
+                         hiring_freeze_from_month: "",
+                         extra_hires: 0,
+                         extra_hires_type: "FTE",
+                         extra_hires_start_month: "",
+                         extra_hires_unit_cost_cents: "",
+                       })
+                     }
+                   >
+                     Reset scenario
+                   </Button>
+                 )}
+               </div>
 
               {whatIfMutation.data && (
                 <>

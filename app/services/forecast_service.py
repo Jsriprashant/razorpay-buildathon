@@ -356,6 +356,14 @@ def compute_what_if(db: Session, team_id: int, today: date, payload: WhatIfReque
         frozen = payload.hiring_freeze_from_month is not None and m >= payload.hiring_freeze_from_month
         if frozen:
             whatif_open_count = 0
+        elif payload.hiring_pct_adjustment:
+            # Scale the approved open-position pipeline for an explicit
+            # scenario. Positive values model additional equivalent hires;
+            # negative values model fewer of the approved hires landing.
+            whatif_open_count = max(
+                0,
+                round(whatif_open_count * (1 + payload.hiring_pct_adjustment / 100)),
+            )
 
         whatif_fte = calc_projected_fte_hc(roster_hc_at_L, actual_fte_hc_today, attrition, k, whatif_open_count)
         whatif_vendor = baseline_vendor
@@ -371,6 +379,13 @@ def compute_what_if(db: Session, team_id: int, today: date, payload: WhatIfReque
             avg_salary,
             position_target_cutoff=delay_cutoff,
         ) + _vendor_no_action_cost_cents(vendor_engagements, m)
+        delayed_open_count = sum(1 for _p, req in open_positions if req.target_start_date <= delay_cutoff)
+        pipeline_hc_delta = whatif_open_count - (0 if frozen else delayed_open_count)
+        if pipeline_hc_delta and avg_salary:
+            whatif_cost = max(
+                0,
+                whatif_cost + fte_monthly_cost_for_hc(pipeline_hc_delta, avg_salary),
+            )
 
         if m >= extra_hires_start and payload.extra_hires > 0:
             if payload.extra_hires_type == "VENDOR":

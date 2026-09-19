@@ -35,6 +35,7 @@ class ForecastOut(BaseModel):
 
 
 class WhatIfRequest(BaseModel):
+    hiring_pct_adjustment: int = Field(default=0, ge=-100, le=100)
     hiring_delay_months: int = Field(default=0, ge=0, le=12)
     attrition_pct_override: float | None = Field(default=None, ge=0, le=1)
     hiring_freeze_from_month: date | None = None
