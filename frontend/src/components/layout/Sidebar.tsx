@@ -109,16 +109,10 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        "hidden shrink-0 flex-col gap-6 border-r border-sidebar-border bg-sidebar py-5 shadow-sidebar transition-[width] duration-200 ease-in-out md:flex",
+        "hidden shrink-0 flex-col gap-6 border-r border-sidebar-border bg-sidebar py-4 shadow-sidebar transition-[width] duration-200 ease-in-out md:flex",
         collapsed ? "w-[76px] px-2" : "w-64 px-3",
       )}
     >
-      <div className={cn("flex items-center gap-2 px-3", collapsed && "justify-center px-0")}>
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-blue text-sm font-bold text-white shadow-card">
-          C
-        </div>
-      </div>
-
       <div className="scrollbar-hide flex-1 overflow-y-auto">
         <NavSection items={MAIN_NAV} collapsed={collapsed} />
         {user?.role === "HR" && (

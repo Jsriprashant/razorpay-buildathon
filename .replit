@@ -62,3 +62,7 @@ outputType = "webview"
 task = "shell.exec"
 args = "cd frontend && npm install --no-audit --no-fund && npm run build && cd .. && uv run python -m app.scripts.init_db && uv run python -m app.scripts.seed && uv run uvicorn app.main:app --host 0.0.0.0 --port 5000"
 waitForPort = 5000
+
+[postMerge]
+path = "scripts/post-merge.sh"
+timeoutMs = 180000

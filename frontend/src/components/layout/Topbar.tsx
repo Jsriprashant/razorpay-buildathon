@@ -6,6 +6,7 @@ import { NotificationBell } from "@/components/layout/NotificationBell";
 import { DemoPanel } from "@/components/layout/DemoPanel";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api";
+import { Search } from "lucide-react";
 
 export function Topbar() {
   const { user, refresh } = useAuth();
@@ -29,7 +30,7 @@ export function Topbar() {
     : "";
 
   return (
-    <header className="flex h-16 items-center justify-between gap-3 border-b border-border bg-card px-4 lg:px-6">
+    <header className="flex h-16 shrink-0 items-center justify-between gap-4 border-b border-border bg-card px-4 lg:px-6">
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2">
           <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-blue text-xs font-bold text-white shadow-card">
@@ -37,9 +38,20 @@ export function Topbar() {
           </div>
           <span className="font-logotype text-lg font-medium tracking-tight text-foreground">CONTINUUM</span>
         </div>
-        <span className="hidden text-sm text-muted-foreground md:inline">{user?.team_name ?? "All teams"}</span>
+      </div>
+      <div
+        role="search"
+        aria-label="Search applications, teams, features"
+        className="hidden h-9 min-w-0 max-w-[22rem] flex-1 items-center gap-2 rounded-xl border border-border bg-background px-3 text-xs text-muted-foreground shadow-sm sm:flex"
+      >
+        <Search className="h-3.5 w-3.5 shrink-0 opacity-70" />
+        <span className="truncate">Search applications, teams, features...</span>
+        <span className="ml-auto hidden shrink-0 rounded border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground/70 lg:inline">
+          /
+        </span>
       </div>
       <div className="flex flex-1 items-center justify-end gap-2">
+        <span className="hidden text-sm text-muted-foreground md:inline">{user?.team_name ?? "All teams"}</span>
         <DemoPanel />
         <NotificationBell />
         {/* Profile + logout live at the bottom of the sidebar on md+ screens; this is the mobile-only fallback. */}
