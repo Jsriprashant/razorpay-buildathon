@@ -20,7 +20,7 @@ import HrVendorCompanies from "@/pages/hr/VendorCompanies";
 import CareersLayout from "@/pages/CareersLayout";
 import CareersList from "@/pages/careers/CareersList";
 import CareersDetail from "@/pages/careers/CareersDetail";
-import { StubPage } from "@/pages/StubPage";
+import History from "@/pages/History";
 
 export default function App() {
   return (
@@ -48,7 +48,7 @@ export default function App() {
         <Route path="/forecast" element={<Forecast />} />
         <Route path="/plan" element={<Plan />} />
         <Route path="/vendors" element={<Vendors />} />
-        <Route path="/history" element={<StubPage title="History" description="Closed-cycle history lands here." />} />
+        <Route path="/history" element={<History />} />
 
         <Route
           path="/hr/inbox"

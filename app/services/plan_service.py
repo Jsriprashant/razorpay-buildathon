@@ -25,7 +25,8 @@ def get_plan(db: Session, team_id: int, today: date, fy_start_month: int) -> Pla
         )
         for m in months
     ]
-    return PlanOut(team_id=team_id, lines=lines)
+    has_plan = db.query(PlanLine.id).filter(PlanLine.team_id == team_id).first() is not None
+    return PlanOut(team_id=team_id, lines=lines, has_plan=has_plan)
 
 
 def upsert_plan(db: Session, team_id: int, lines: list[PlanLineIn]) -> PlanOut:
@@ -59,4 +60,5 @@ def upsert_plan(db: Session, team_id: int, lines: list[PlanLineIn]) -> PlanOut:
             )
             for m in months
         ],
+        has_plan=True,
     )

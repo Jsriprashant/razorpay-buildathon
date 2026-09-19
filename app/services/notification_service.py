@@ -30,3 +30,32 @@ def notification_exists(db: Session, user_id: int, message: str) -> bool:
         .first()
         is not None
     )
+
+
+def list_for_user(db: Session, user_id: int, limit: int = 50) -> list[Notification]:
+    return (
+        db.query(Notification)
+        .filter(Notification.user_id == user_id)
+        .order_by(Notification.created_at.desc())
+        .limit(limit)
+        .all()
+    )
+
+
+def unread_count(db: Session, user_id: int) -> int:
+    return (
+        db.query(Notification.id)
+        .filter(Notification.user_id == user_id, Notification.read_at.is_(None))
+        .count()
+    )
+
+
+def mark_read(db: Session, user_id: int, notification_id: int | None) -> None:
+    """notification_id=None marks every unread notification for this user as
+    read (the bell's "mark all read" action); otherwise marks just the one
+    (and only if it belongs to this user)."""
+    query = db.query(Notification).filter(Notification.user_id == user_id, Notification.read_at.is_(None))
+    if notification_id is not None:
+        query = query.filter(Notification.id == notification_id)
+    query.update({Notification.read_at: datetime.utcnow()}, synchronize_session=False)
+    db.commit()

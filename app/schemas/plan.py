@@ -20,6 +20,7 @@ class PlanLineIn(BaseModel):
 class PlanOut(BaseModel):
     team_id: int
     lines: list[PlanLineOut]
+    has_plan: bool = False
 
 
 class PlanUpdateRequest(BaseModel):

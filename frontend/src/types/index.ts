@@ -162,6 +162,7 @@ export interface PlanLine {
 export interface PlanOut {
   team_id: number;
   lines: PlanLine[];
+  has_plan: boolean;
 }
 
 export interface ForecastMonthPoint {
@@ -347,6 +348,51 @@ export interface VendorMessage {
   status: "SENT" | "REPLIED";
   sent_by: number;
   sent_at: string;
+}
+
+export type CycleStatus = "OPEN" | "CLOSED";
+
+export interface CycleSummary {
+  fte_hc: number;
+  vendor_hc: number;
+  actual_cost_cents: number;
+  plan_budget_cents: number;
+  plan_fte_hc: number;
+  plan_vendor_hc: number;
+}
+
+export interface Cycle {
+  id: number;
+  team_id: number;
+  month_start: string;
+  status: CycleStatus;
+  opened_at: string;
+  closed_at: string | null;
+  summary: CycleSummary | null;
+}
+
+export interface CycleCurrentOut {
+  cycle: Cycle;
+  needs_rollover: boolean;
+  today: string;
+}
+
+export interface RolloverOut {
+  closed_cycles: Cycle[];
+  current_cycle: Cycle;
+}
+
+export interface Notification {
+  id: number;
+  message: string;
+  link: string | null;
+  read_at: string | null;
+  created_at: string;
+}
+
+export interface NotificationsOut {
+  items: Notification[];
+  unread_count: number;
 }
 
 export interface VendorEngagement {

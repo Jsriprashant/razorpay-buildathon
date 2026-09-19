@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api, ApiError } from "@/lib/api";
 import { formatCents } from "@/lib/money";
+import { parseDateOnlyUTC } from "@/lib/dates";
 import type { RequestDetail, RequestType, Settings, VendorCompany } from "@/types";
 
 const GRADES = ["G1", "G2", "G3", "G4"];
@@ -83,22 +84,25 @@ export default function RequestNew() {
     const rate = Math.round((Number(hourlyRate) || 0) * 100);
     const hours = Number(hoursPerMonth) || 0;
     if (!qty || !rate || !hours || !targetStartDate || !endDate) return null;
-    const start = new Date(targetStartDate);
-    const end = new Date(endDate);
+    // UTC-anchored throughout (Date.UTC / getUTC*) — never mix with local
+    // getters here, since targetStartDate/endDate are date-only strings and
+    // `new Date("YYYY-MM-DD")` is UTC midnight (see lib/dates.ts).
+    const start = parseDateOnlyUTC(targetStartDate);
+    const end = parseDateOnlyUTC(endDate);
     if (end < start) return null;
     let total = 0;
-    let cursor = new Date(start.getFullYear(), start.getMonth(), 1);
-    const lastMonth = new Date(end.getFullYear(), end.getMonth(), 1);
+    let cursor = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), 1));
+    const lastMonth = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), 1));
     while (cursor <= lastMonth) {
-      const monthDays = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0).getDate();
+      const monthDays = new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth() + 1, 0)).getUTCDate();
       const monthStart = cursor;
-      const monthEnd = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0);
+      const monthEnd = new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth() + 1, 0));
       const activeStart = start > monthStart ? start : monthStart;
       const activeEnd = end < monthEnd ? end : monthEnd;
       const activeDays = Math.max(0, Math.round((activeEnd.getTime() - activeStart.getTime()) / 86400000) + 1);
       const fullMonthCost = qty * rate * hours;
       total += Math.round((fullMonthCost * activeDays) / monthDays);
-      cursor = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1);
+      cursor = new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth() + 1, 1));
     }
     return total;
   }, [type, quantity, hourlyRate, hoursPerMonth, targetStartDate, endDate]);

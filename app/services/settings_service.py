@@ -58,3 +58,19 @@ def update(db: Session, values: dict[str, str | None]) -> dict[str, str | None]:
             row.value = value
     db.commit()
     return get_all(db)
+
+
+def to_settings_out(values: dict[str, str | None]):
+    """Shared SettingsOut builder so every router that reads/writes settings
+    (settings.py, demo.py) formats the response the same way."""
+    from app.schemas.settings import SettingsOut
+
+    return SettingsOut(
+        currency=values.get("currency") or "USD",
+        fy_start_month=int(values.get("fy_start_month") or 1),
+        vendor_hours_per_month=int(values.get("vendor_hours_per_month") or 160),
+        attrition_pct_monthly=float(values.get("attrition_pct_monthly") or 0),
+        fte_lead_days=int(values.get("fte_lead_days") or 45),
+        vendor_lead_days=int(values.get("vendor_lead_days") or 14),
+        demo_today=values.get("demo_today"),
+    )

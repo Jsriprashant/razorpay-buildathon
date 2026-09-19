@@ -13,9 +13,12 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from app.routers import applications as applications_router
 from app.routers import auth as auth_router
+from app.routers import cycles as cycles_router
+from app.routers import demo as demo_router
 from app.routers import forecast as forecast_router
 from app.routers import hr as hr_router
 from app.routers import kpis as kpis_router
+from app.routers import notifications as notifications_router
 from app.routers import plan as plan_router
 from app.routers import postings as postings_router
 from app.routers import recon as recon_router
@@ -46,6 +49,9 @@ app.include_router(hr_router.router, prefix="/api/v1")
 app.include_router(postings_router.router, prefix="/api/v1")
 app.include_router(applications_router.router, prefix="/api/v1")
 app.include_router(vendors_router.router, prefix="/api/v1")
+app.include_router(cycles_router.router, prefix="/api/v1")
+app.include_router(notifications_router.router, prefix="/api/v1")
+app.include_router(demo_router.router, prefix="/api/v1")
 
 
 @app.exception_handler(404)

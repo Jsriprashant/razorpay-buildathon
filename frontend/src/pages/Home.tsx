@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { HomeChecklist } from "@/components/layout/HomeChecklist";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api";
 import type { KpiOut } from "@/types";
@@ -14,6 +15,8 @@ export default function Home() {
   return (
     <div>
       <PageHeader title={`Welcome, ${user?.name ?? ""}`} description="Your headcount, requests and vendor status at a glance." />
+
+      {user?.role === "MANAGER" && <HomeChecklist />}
 
       {isLoading && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

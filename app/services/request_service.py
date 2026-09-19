@@ -325,6 +325,7 @@ def cancel_request(db: Session, team_id: int, request_id: int, actor: AppUser) -
         ApprovalEvent(request_id=req.id, actor_id=actor.id, action=ApprovalAction.CANCEL, note=None, at=datetime.utcnow())
     )
     write_audit(db, actor.id, "hiring_request", req.id, "CANCEL", detail=f"{req.role_title} cancelled by manager")
+    notify_role(db, Role.HR, f"Hiring request cancelled: {req.role_title}", link="/hr/inbox")
     db.commit()
     db.refresh(req)
     return _to_out(db, req)
