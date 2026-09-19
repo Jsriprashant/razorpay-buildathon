@@ -1,0 +1,239 @@
+> Paste everything below this line into Replit Agent as ONE message. Let one person drive the Agent.
+
+---
+
+# ROLE
+You are a principal full-stack engineer. Build "HeadcountHQ" (rename freely): a hackathon-speed, production-shaped web app on Replit. It replaces the headcount, hiring-request, vendor-contract and forecasting parts of Workday (NOT payroll, benefits or anything else). Build everything below in one run, in the phase order of Section 14. Do not ask me questions. For unspecified UI details choose the simplest option and log it in ASSUMPTIONS.md. Never invent business rules or formulas: use only those in Sections 4-8. No mocked data and no dead buttons: everything reads and writes PostgreSQL.
+
+# 0. OPERATING RULES
+1. Work phase by phase (Section 14). After each phase: run the app, click through the new flows in the browser, read the server logs, fix errors, then continue. If something cannot be finished, finish the phases in order and list the gaps under "Not done" in README.
+2. Wiring is mandatory: every button -> API endpoint -> service function -> tables written -> notification -> UI refresh (TanStack Query invalidation, no manual reload). No button without an endpoint, no endpoint without a caller, no state without an exit.
+3. Keep business logic in `app/services` and pure math in `app/calc` (no DB access). Routers stay thin.
+4. Anything configurable lives in the `setting` table, never hardcoded.
+5. Save a checkpoint at the end of every phase.
+
+# 1. PRODUCT AND PERSONAS
+Problem: a monthly headcount close takes about 20 days across exports, emails and spreadsheets. Goal: the same close in minutes, plus a forecast that tells the manager what to hire and by when, before the month starts.
+
+Roles (enforced on the server):
+- MANAGER: owns one team; is also the team's financial owner; sees salary and cost for their own team only; sets the plan; raises requests; runs the monthly cycle.
+- HR: the ONLY approver; sees all teams; runs postings, applicants, vendor dispatch, settings.
+- FINANCE_VIEWER (P1 extra): read-only cross-team dashboard.
+- CANDIDATE: public, no login. VENDOR: receives a message only, no login.
+
+Principle: minimal manual effort. Prefill everything derivable, offer one-click actions, never make a user re-enter data the system already holds.
+
+# 2. STACK AND REPLIT RULES
+- ONE Replit app, ONE web service on one port (bind 0.0.0.0, use PORT). Enable both Python 3.11+ and Node.js in the Repl. Follow the dependency-file style of Replit's Python template.
+- Backend: Python, FastAPI, Pydantic v2, SQLAlchemy 2.0 (typed models), psycopg (v3), PostgreSQL via Replit's built-in database (DATABASE_URL). Tables are created by `python -m app.scripts.init_db` (create_all is fine). Seed with `python -m app.scripts.seed` and `python -m app.scripts.seed_reset`.
+- Frontend: React + Vite + TypeScript + Tailwind + shadcn/ui + TanStack Query + Recharts. Vite builds to `frontend/dist`; FastAPI serves it with StaticFiles and an SPA fallback for every non-/api route. `/careers` must work logged out.
+- API under `/api/v1`, auto OpenAPI docs at `/api/docs`. Every route uses Pydantic schemas and a `Depends(current_user)` role and team guard.
+- Sessions: Starlette SessionMiddleware (signed cookie). Demo login is a user picker (one user per role). Show a "Demo mode" banner; README notes that real SSO replaces this later.
+- Tests: pytest (unit tests for `app/calc`, API tests with FastAPI TestClient). Browser flows are checked manually against Section 16.
+- Deployment: `.replit` run and deployment commands must (1) install dependencies, (2) build the frontend, (3) init the DB, (4) start `uvicorn app.main:app --host 0.0.0.0 --port $PORT`. No extra config. Deployment must work with Replit Deployments.
+- No external services or API keys. Email is simulated: `vendor_message` acts as the outbox, status "Sent (simulated)", plus "Open in email app" (mailto) and "Copy message" buttons. Rate-limit the public apply endpoint with a simple in-memory limiter.
+- Money: integer cents everywhere (columns end in `_cents`). NEVER use float for money. Python's round() is banker's rounding, so ALL rounding goes through one shared `app/calc/money.py` helper using integer math or Decimal with ROUND_HALF_UP. One frontend format helper; currency comes from settings.
+- Dates: `date` type. "Today" is ALWAYS `get_today()`, which returns setting `demo_today` if set, else the real date. Never call date.today() elsewhere.
+- Derive, don't store: recon items, forecast, KPIs and vendor ACTIVE/ENDED display status are computed on request from the tables.
+- Code layout: `app/models`, `app/schemas`, `app/routers`, `app/services`, `app/calc`, `app/scripts`, `app/tests`; `frontend/`.
+
+# 3. DATA MODEL (all FKs, indexes and unique constraints)
+- team(id, name, cost_center, manager_worker_id NULL)
+- app_user(id, name, email, role[MANAGER|HR|FINANCE_VIEWER], team_id NULL)
+- setting(key, value). Defaults: currency=USD; fy_start_month=1; vendor_hours_per_month=160; attrition_pct_monthly=0; fte_lead_days=45; vendor_lead_days=14; demo_today=null
+- plan_line(id, team_id, month_start, planned_fte_hc, planned_vendor_hc, planned_budget_cents) UNIQUE(team_id, month_start)
+- cycle(id, team_id, month_start, status[OPEN|CLOSED], opened_at, closed_at) UNIQUE(team_id, month_start)
+- worker(id, worker_id UNIQUE like "W1001", team_id, name, job_title, grade, hire_date, termination_date NULL, exit_reason NULL, manager_worker_id NULL, cost_center, location, annual_salary_cents, position_id NULL, source[SEED|MANUAL|HIRED_FROM_POSTING]). Active status is derived from dates (Section 4).
+- snapshot_worker(same columns as worker, plus period_month) UNIQUE(team_id, period_month, worker_id). Immutable. Active workers only, as of the last day of period_month.
+- cycle_summary(cycle_id, fte_hc, vendor_hc, actual_cost_cents, plan_budget_cents, plan_fte_hc, plan_vendor_hc)
+- vendor_company(id, name, contact_name, contact_email)
+- hiring_request(id, team_id, cycle_id, type[FTE|VENDOR], role_title, grade, quantity, annual_salary_cents NULL, hourly_rate_cents NULL, hours_per_month NULL, vendor_company_id NULL, target_start_date, end_date NULL, justification, source[MANUAL|FORECAST_SUGGESTION], status[DRAFT|SUBMITTED|APPROVED|REJECTED|CHANGES_REQUESTED|CANCELLED], decided_by NULL, decision_note NULL, created_by, created_at, submitted_at NULL, approved_at NULL)
+- position(id, request_id, status[OPEN|FILLED|CANCELLED], filled_worker_id NULL, filled_on NULL)
+- approval_event(id, request_id, actor_id, action[SUBMIT|APPROVE|REJECT|REQUEST_CHANGES|CANCEL|RESUBMIT], note, at)
+- job_posting(id, request_id UNIQUE, slug UNIQUE, title, description, location, openings, status[PUBLISHED|PAUSED|CLOSED], published_at)
+- application(id, posting_id, name, email, phone, profile_url, note, status[NEW|SHORTLISTED|REJECTED|HIRED], created_at) UNIQUE(posting_id, email)
+- vendor_engagement(id, request_id UNIQUE, vendor_company_id, headcount, hourly_rate_cents, hours_per_month, start_date, end_date, status[AWAITING_DISPATCH|MESSAGE_SENT|CONFIRMED|DECLINED|CANCELLED])
+- vendor_message(id, engagement_id, to_email, subject, body, status[SENT|REPLIED], sent_by, sent_at)
+- recon_resolution(id, team_id, period_month, worker_id NULL, position_id NULL, category, note, by, at)
+- notification(id, user_id, message, link, read_at, created_at)
+- audit_log(id, actor_id, entity, entity_id, action, detail_json, at)
+
+# 4. DEFINITIONS AND FORMULAS (implement in `app/calc`, with pytest golden tests)
+Definitions
+- `termination_date` is the LAST working day (inclusive). A worker is ACTIVE on date d if hire_date <= d and (termination_date is null or termination_date >= d).
+- roster_hc(d) = count of ACTIVE workers on d, from the `worker` table.
+- Headcount for a future month m is always measured on the LAST DAY of m. Actual headcount uses today.
+- Vendor headcount on d = sum of headcount of CONFIRMED engagements with start_date <= d <= end_date.
+- Fiscal year = 12 months starting at fy_start_month (containing today).
+
+Cost
+- Proration: active_days = days in month m on which the item is active (end inclusive, null end = open-ended). factor = active_days / days_in_month. Use integer math, e.g. annual_salary_cents * active_days / (12 * days_in_month), rounded once, ROUND_HALF_UP.
+- FTE cost(m) = annual_salary_cents / 12 * factor.
+- Vendor cost(m) = headcount * hourly_rate_cents * hours_per_month * factor.
+- Round once per line item to whole cents, then sum.
+- Golden tests: FTE at 120,000/yr starting the 16th of a 30-day month = 5,000.00. 2 vendors at 50/hr x 160h for the whole month = 16,000.00; active 10 of 30 days = 5,333.33.
+
+Month figures (current month, computed for the full month from current data)
+- Cost this month (actual) = sum of FTE cost(month) for workers with any active day in the month + sum of vendor cost(month) for CONFIRMED engagements.
+- Plan cost = plan_line.planned_budget_cents for the month. Variance = actual - plan; variance % = variance / plan.
+- Committed cost this month = FTE cost from target_start for OPEN positions of APPROVED FTE requests with target_start <= end of month + vendor cost(month) for engagements that are not CONFIRMED, DECLINED or CANCELLED.
+- Available budget this month = plan - actual cost - committed cost.
+- Unspent from earlier months (INFO ONLY: no action, no carry-forward) = sum over CLOSED cycles in the current fiscal year of (plan_budget - actual_cost) from cycle_summary. Shown to the manager, nothing else.
+- YTD actual = closed cycle_summary actual + current month cost. YTD plan likewise.
+- Year-end outlook = YTD actual + sum of projected cost for remaining months (Section 7), compared with the sum of the fiscal-year plan. Show two values: with suggestions accepted (primary) and with no action.
+- Vendor request total contract value (shown live on the form) = sum of vendor cost(m) over every month from start_date to end_date.
+
+HR decision helpers (informational badges only; HR may always approve)
+- Plan-fit for a request = plan_hc[start month] - projected_hc[start month] including this request. Negative means the request takes the team over plan.
+- Budget-fit = year-end outlook headroom after adding this request's cost from its start month to fiscal-year end.
+
+# 5. WORKFLOWS AND STATE MACHINES (illegal transitions return 409)
+Request: DRAFT -> SUBMITTED -> APPROVED | REJECTED | CHANGES_REQUESTED. CHANGES_REQUESTED -> SUBMITTED (edit and resubmit). DRAFT/SUBMITTED -> CANCELLED (manager). Only HR approves, rejects or requests changes; a note is required for reject and request-changes. Every transition writes approval_event + notification + audit_log.
+
+On APPROVE, in ONE database transaction:
+- FTE: create `quantity` OPEN positions and one job_posting (PUBLISHED, unique slug, openings = quantity, description auto-generated from role, grade and team, NO salary).
+- VENDOR: create one vendor_engagement (AWAITING_DISPATCH) copying company, headcount, rate, hours, dates.
+
+FTE fulfilment: HR moves an application to HIRED -> dialog (start date, salary prefilled from the request) -> creates a worker (source HIRED_FROM_POSTING, team manager as manager_worker_id) linked to the next OPEN position; that position becomes FILLED. When no OPEN positions remain, the posting becomes CLOSED. HR can pause or close a posting at any time. Cancelling an APPROVED request is HR-only and cancels its open positions and closes its posting (or cancels its vendor engagement).
+
+Vendor fulfilment: HR opens the dispatch queue; the composer is prefilled from a template (company, headcount, role, dates, rate); Send (simulated) -> MESSAGE_SENT. HR marks CONFIRMED or DECLINED. DECLINED notifies the manager, who raises a new request with another company. After CONFIRMED, ACTIVE/ENDED are derived from dates. Vendor HC counts as "actual" only when CONFIRMED and date-active, but counts in projections from approval unless DECLINED or CANCELLED (shown as "unconfirmed").
+
+Roster actions (manager):
+- Add person (single form: name, job title, grade, hire date, annual salary, location, optional "link to open position" dropdown; the system proposes a match and the manager confirms in one click). Unlinked additions are flagged UNPLANNED_HIRE.
+- Edit (title, grade, salary; effective today, audited; the worker row is updated in place and history lives in the monthly snapshots).
+- Record exit (last working day + reason).
+- Bulk headcount ("open 10 headcounts for this role at this salary") is ONE request with quantity N, not N requests.
+
+Notifications (in-app): request submitted -> all HR; approved / rejected / changes requested -> manager; posting published -> manager; application received -> HR; vendor message sent, confirmed, declined -> manager; recon flags created -> manager; forecast URGENT suggestion exists -> manager; vendor contract expiring in 30 days -> manager and HR; new month started -> manager.
+
+# 6. RECON RULES
+Compare the live roster (ACTIVE today) with `snapshot_worker` of the previous month, matched on worker_id. If no previous snapshot exists, show a BASELINE banner and no diffs.
+- NEW_HIRE: active now, not in the previous snapshot. EXIT: in the previous snapshot, not active now. CHANGE: in both, but job_title, grade, annual_salary or manager differ (show before and after). Unchanged: count only.
+- Flags: UNPLANNED_HIRE (new hire with no linked position); UNFILLED_OVERDUE (OPEN position with target_start < today); PLAN_VARIANCE (actual HC differs from plan for the month, shown as a banner with the numbers).
+- Auto-match a new worker to an OPEN position by same job_title (case-insensitive) and same grade if provided; choose the earliest target_start_date.
+- Three tabs: (1) Changes since last month, (2) Requested vs actual (approved positions vs workers: FILLED / OPEN / OVERDUE, plus unplanned hires), (3) Plan vs actual (HC and cost for FTE and vendor).
+- Row actions: Acknowledge with note, bulk acknowledge, Link to position. Resolutions are stored in `recon_resolution`. Unresolved flags feed a KPI card.
+
+# 7. FORECAST (deterministic, commitment-based; NO statistical or ML models)
+Implement as pure functions in `app/calc/forecast.py`. For each month m from next month to fiscal-year end (k = months ahead of today, L = last day of m):
+- projected_fte_hc[m] = roster_hc(L) - round_half_up(actual_fte_hc_today * attrition_pct_monthly * k) + count of OPEN positions of APPROVED FTE requests with target_start <= L. (roster_hc(L) already reflects future-dated hires and exits.)
+- projected_vendor_hc[m] = sum of headcount of engagements not DECLINED or CANCELLED that are active on L. Show unconfirmed ones separately.
+- gap[m] = plan_hc[m] - projected_hc[m], computed separately for FTE and vendor.
+
+Suggestions (per type, months in order): cum = 0; need = max(0, gap[m]); new = max(0, need - cum); cum += new. If new > 0, suggest {type, quantity = new, start = first day of m, request_by = start - lead_days(type)}. Unit cost is prefilled from the team's average current FTE salary (or the latest vendor hourly rate); if none exists it is blank and required. request_by < today => URGENT. Every suggestion has "Create request", which opens the request form prefilled (source FORECAST_SUGGESTION).
+
+Cost per month: (a) no action = existing workers' prorated cost (respecting future termination dates) + approved OPEN positions from target_start + vendor engagements (non-declined, non-cancelled); (b) with suggestions = (a) + suggested hires at their unit cost from their start month; (c) plan budget. Chart plan vs (a) vs (b), for both HC and cost.
+
+Transparency: every number shows its formula on hover. A "How is this calculated?" panel states plainly: "Commitment-based projection from your roster, approved positions and vendor contracts. It is not a prediction."
+
+What-if panel (live, not saved): hiring delay in months (shifts all OPEN positions and suggestions), attrition % override, hiring freeze from month X (no new suggestions or starts after X), extra hires (type, qty, start month, unit cost). Show delta vs baseline for HC and year-end cost.
+
+Golden tests (pytest):
+1. Actual FTE 25; plan 26/27/28; one open position starting mid-month 1. Expect projected 26/26/26, gaps 0/1/2, and suggestions of 1 in month 2 and 1 in month 3 (NOT 1 and 2).
+2. A worker with a future termination date lowers projected HC from that month.
+3. A FILLED position whose worker starts next month raises projected HC from that month.
+
+P1 extra (only after Phase 7): save up to 3 scenarios, compare side by side, "Promote to requests".
+
+# 8. KPI CARDS (Home and top of Forecast; each with a formula tooltip and click-through)
+1 Headcount actual vs plan (FTE, vendor) | 2 Cost this month | 3 Plan this month | 4 Variance (abs, %) | 5 Available budget | 6 Unspent from earlier months (info only) | 7 YTD actual vs plan | 8 Year-end outlook (headroom or overrun) | 9 Pipeline (submitted + approved-unfilled: count and monthly run-rate) | 10 Open positions and average days open (today - approved_at) | 11 Vendor contracts expiring in 30/60/90 days | 12 Unresolved recon flags.
+Also show an auto-generated one-paragraph variance summary built from the numbers using template text (no LLM).
+
+# 9. MONTH ROLLOVER AND DEMO CLOCK
+On every manager page load: if the team's OPEN cycle month_start is earlier than the first day of the current month (per get_today()), show a modal: "It's <Month YYYY>. Start a fresh cycle?" with [Start fresh cycle] and [Remind me later].
+
+Start fresh (single transaction, idempotent, double-click safe):
+1. For the closing cycle: write `snapshot_worker` rows for workers ACTIVE on its last day, and write `cycle_summary`.
+2. Mark it CLOSED (read-only, visible in /history).
+3. Create the new OPEN cycle.
+4. DRAFT, SUBMITTED and APPROVED requests carry over unchanged. Nothing is deleted or reset.
+5. Redirect to Home with a fresh 3-step checklist: Review recon -> Review forecast -> Raise requests (auto-ticks from data).
+
+If more than one month behind, close each month in order. "Remind me later" keeps a persistent banner and the old cycle stays workable. Log in ASSUMPTIONS.md that the snapshot is taken from the roster at rollover time, so the modal should be offered immediately when the month changes.
+
+Demo panel (visible in demo mode, all roles): "Advance to next month" (sets demo_today to the first day of next month) and "Reset demo data" (re-seeds and clears demo_today).
+
+# 10. USER JOURNEYS (build the UX to match; this is what the demo shows)
+Manager, first five minutes:
+1. Open the app URL -> login page -> pick "Manager" -> Home.
+2. Home shows the cycle banner ("<Month> - OPEN"), the checklist, the KPI cards and the top 3 forecast suggestions. If the team has no plan for the fiscal year, an extra first step "Set your plan" appears and links to /plan.
+3. Checklist step 1, Review recon: open /recon, see joiners, exits, changes and flags, click Acknowledge or Link to position (bulk supported).
+4. Step 2, Review forecast: open /forecast, see the gap to plan and suggestions with "raise request by" dates; adjust the what-if panel if wanted.
+5. Step 3, Raise requests: click "Create request" on a suggestion (prefilled) or /requests/new (FTE or Vendor toggle, quantity for bulk). Submit.
+6. Track status on /requests; the notification bell tells them when HR decides.
+7. When the month changes, the rollover modal appears: Start fresh cycle.
+
+HR:
+1. Login as HR -> /hr/inbox with a pending badge -> open a request drawer (plan-fit and budget-fit shown) -> Approve, Reject or Request changes.
+2. FTE approved: the posting is already live at /careers/<slug>; applicants appear in /hr/applications; Hire creates the worker.
+3. Vendor approved: /hr/vendor-dispatch -> review the prefilled message -> Send -> mark Confirmed or Declined.
+
+Candidate: /careers -> pick a role -> apply (name, email, phone, profile URL, note) -> thank-you page.
+
+Empty states must always show the next action (for example "No requests yet - create one from a forecast suggestion").
+
+# 11. PAGES
+Manager: /home, /roster (month picker, Add person, Edit, Record exit), /recon (3 tabs), /requests (list), /requests/new, /requests/:id (timeline, positions, posting link, messages), /forecast (chart, suggestions, what-if), /plan (12-month grid of FTE HC, vendor HC and budget, with fill-right), /vendors (engagements, expiry, status), /history (closed cycles, read-only).
+- /requests/new: FTE|Vendor toggle. FTE fields: role, grade, quantity, annual salary, target start. Vendor fields: quantity, company, hourly rate, start, end, live contract value. Prefill from plan, last request, or suggestion.
+
+HR: /hr/inbox (pending across teams, filters, bulk approve, detail drawer), /hr/postings (pause, close, applicant counts), /hr/applications (kanban per posting, Hire dialog), /hr/vendor-dispatch, /hr/vendors (company directory), /hr/settings.
+
+Public: /careers (list, search), /careers/:slug, apply form (name, email, phone, profile URL, note, honeypot field, duplicate email per posting blocked, rate-limited), thank-you page. Closed or unknown slugs show "position closed". Never expose salary, cost or internal IDs.
+
+Shared: notification bell, demo panel, rollover modal. Every page has loading, empty (with call to action) and error states. Every list has search, filter and sort.
+
+# 12. API SURFACE (/api/v1; docs/flow-matrix.md must map every UI action to one of these)
+auth: GET /auth/demo-users, POST /auth/login, POST /auth/logout, GET /auth/me
+settings: GET, PUT /settings (HR)
+plan: GET /plan, PUT /plan (bulk upsert for the fiscal year)
+cycles: GET /cycles/current, GET /cycles (history), GET /cycles/{id}, POST /cycles/rollover
+roster: GET /roster, POST /roster/workers, PATCH /roster/workers/{id}, POST /roster/workers/{id}/exit
+recon: GET /recon, POST /recon/resolve (single and bulk), POST /recon/link-position
+kpis: GET /kpis
+forecast: GET /forecast, POST /forecast/what-if
+requests: GET, POST /requests; GET, PATCH /requests/{id}; POST /requests/{id}/submit, /cancel, /resubmit
+hr approvals: GET /hr/inbox; POST /hr/requests/{id}/approve, /reject, /request-changes, /cancel; POST /hr/requests/bulk-approve
+postings: GET /hr/postings; PATCH /hr/postings/{id}
+applications: GET /hr/applications; POST /hr/applications/{id}/status, /hire
+public: GET /public/postings, GET /public/postings/{slug}, POST /public/postings/{slug}/apply
+vendors: GET, POST /hr/vendor-companies; GET /hr/vendor-dispatch; POST /hr/engagements/{id}/send, /confirm, /decline; GET /vendors (manager view)
+notifications: GET /notifications, POST /notifications/read
+demo: POST /demo/advance-month, POST /demo/reset
+audit: GET /audit (HR)
+
+# 13. SECURITY
+Server-side role and team scoping on every route (a manager requesting another team's data gets 403). Salary and cost fields are excluded from all public endpoints. Audit every mutation. Validate every input with Pydantic. Sanitize text rendered on the public careers pages.
+
+# 14. BUILD ORDER (after each phase: run, click through, read logs, fix, continue)
+P1 schema + seed + demo auth + layout + settings + `app/calc` with pytest golden tests
+P2 roster + recon + KPI cards on Home
+P3 plan editor + forecast + suggestions + what-if
+P4 requests + HR inbox + positions + postings + public careers + applications + hire
+P5 vendor dispatch + engagements
+P6 rollover + demo panel + notifications + history
+P7 polish; README (run steps + demo script); docs/flow-matrix.md (every user action -> route -> endpoint -> tables written -> state change -> notification -> UI update, with a check that lists any orphan button or endpoint); run `pytest` and a manual pass through Section 16
+Extras (only if everything above works): CSV bulk add of workers in Workday column format with a validation preview; saved scenarios; FINANCE_VIEWER dashboard; resume upload.
+
+# 15. SEED DATA (deterministic; all dates relative to get_today(); every record labelled DEMO)
+- One team "Platform Engineering"; users: 1 manager, 1 HR (plus a finance viewer if built).
+- About 25 FTE workers with Workday-style columns and hire dates spread over 18 months; team manager is one of them.
+- Snapshots and cycle_summary for every closed month of the current fiscal year, generated from effective dates, applying the seeded grade and salary changes only after their change date.
+- Versus last month's snapshot, the current month must show: 2 new hires (one linked to an approved position, one UNPLANNED), 1 exit, 1 grade change, 1 salary change.
+- One SUBMITTED FTE request waiting in the HR inbox. One APPROVED FTE request with a PUBLISHED posting and 2 applications. One approved OPEN position past its target start (overdue).
+- 3 vendor companies; 2 CONFIRMED vendor engagements of headcount 2 each, one expiring within 30 days.
+- Full-year plan: past months' plan roughly equals snapshot HC; the current month plan is actual FTE + 1; each later month adds +1 FTE; vendor plan is 4 every month; budgets consistent with the salaries. The forecast must yield at least 2 suggestions, at least one URGENT and at least one vendor suggestion.
+
+# 16. ACCEPTANCE TESTS (all must pass; script them or click through)
+A1 Home shows all KPI cards with seeded values; tooltips show formulas.
+A2 Recon shows the seeded differences and flags; acknowledging updates the KPI count.
+A3 Add person -> proposed position match -> confirm -> position FILLED -> recon updates.
+A4 Bulk: request 10 FTE headcounts with one salary -> submit -> HR approves -> 10 OPEN positions + a PUBLISHED posting -> a logged-out visitor applies on /careers -> HR sees the application -> Hire -> worker appears in the roster, position FILLED.
+A5 Vendor: request (quantity, company, hourly rate, start, end) -> HR approves -> dispatch -> Send (simulated) -> Confirm -> counted in HC and cost.
+A6 Reject or request-changes -> manager edits -> resubmit -> approve.
+A7 Forecast suggestion -> Create request (prefilled) -> submit -> appears in the HR inbox; pipeline KPI updates.
+A8 Advance month -> modal -> Start fresh -> snapshot + cycle_summary written, old cycle read-only in /history, new cycle OPEN, requests carried over.
+A9 Negatives: a manager cannot read another team's data; public endpoints never return salary; illegal state transitions return 409.
+Unit tests (pytest): proration golden values, recon classification, incremental forecast suggestions with a fixed fixture, future exits and future hires in projection, available-budget formula, ROUND_HALF_UP behaviour.
+
+# 17. DEFINITION OF DONE
+All of A1-A9 pass, pytest is green, flow-matrix check finds no orphans, the seeded demo has no empty pages, the deployed URL works logged out on /careers, README lets a new person run and demo everything in under 15 minutes, ASSUMPTIONS.md lists every choice you made.
