@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.deps import current_user, get_db, resolve_team_id
@@ -29,6 +30,22 @@ def chat(
     user: AppUser = Depends(current_user),
 ):
     return assistant_service.chat(db, user, payload)
+
+
+@router.post("/chat/stream")
+def stream_chat(
+    payload: AssistantChatRequest,
+    db: Session = Depends(get_db),
+    user: AppUser = Depends(current_user),
+):
+    return StreamingResponse(
+        assistant_service.chat_stream(db, user, payload),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache, no-transform",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 @router.post("/actions/confirm", response_model=AssistantActionResponse)

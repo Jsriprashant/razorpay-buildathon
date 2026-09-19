@@ -32,6 +32,9 @@
     --sidebar-active-bg: 0 0% 100%;
     --sidebar-active-foreground: 243 75% 45%;
     --sidebar-border: 240 25% 91%;
+
+    --gradient-blue-start: 199 89% 58%;
+    --gradient-blue-end: 243 75% 56%;
   }
 }
 
@@ -52,5 +55,31 @@
   .font-logotype {
     font-family: "Fraunces", ui-serif, Georgia, serif;
     letter-spacing: 0.01em;
+  }
+
+  .font-numeric {
+    font-family: "Manrope", "Inter", ui-sans-serif, system-ui, sans-serif;
+    font-feature-settings: "tnum" 1, "ss01" 1;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+
+  .bg-gradient-blue {
+    background-image: linear-gradient(135deg, hsl(var(--gradient-blue-start)), hsl(var(--gradient-blue-end)));
+  }
+
+  .bg-gradient-blue-soft {
+    background-image: linear-gradient(
+      135deg,
+      hsl(var(--gradient-blue-start) / 0.14),
+      hsl(var(--gradient-blue-end) / 0.06)
+    );
+  }
+
+  .text-gradient-blue {
+    background-image: linear-gradient(135deg, hsl(var(--gradient-blue-start)), hsl(var(--gradient-blue-end)));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
   }
 }

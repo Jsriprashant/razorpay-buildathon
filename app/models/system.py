@@ -44,3 +44,17 @@ class AuditLog(Base):
     action: Mapped[str] = mapped_column(String(50), nullable=False)
     detail_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     at: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
+
+
+class AssistantActionGrant(Base):
+    """One-time capability backing a Copilot confirmation card."""
+
+    __tablename__ = "assistant_action_grant"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("app_user.id"), nullable=False, index=True)
+    team_id: Mapped[int] = mapped_column(ForeignKey("team.id"), nullable=False, index=True)
+    action_kind: Mapped[str] = mapped_column(String(64), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
+    consumed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    result_json: Mapped[str | None] = mapped_column(Text, nullable=True)

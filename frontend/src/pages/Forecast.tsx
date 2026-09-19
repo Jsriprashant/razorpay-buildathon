@@ -103,7 +103,7 @@ export default function Forecast() {
             </CardHeader>
             <CardContent className="h-72">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chartData}>
+                <LineChart data={chartData} margin={{ top: 8, right: 16, left: 8, bottom: 0 }}>
                   <defs>
                     <linearGradient id="forecastFill" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.22} />
@@ -112,7 +112,13 @@ export default function Forecast() {
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
                   <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
-                  <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+                  <YAxis
+                    allowDecimals={false}
+                    width={44}
+                    tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
                   <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid hsl(var(--border))", boxShadow: "0 12px 32px -8px rgb(30 27 75 / .18)", fontSize: 12 }} />
                   <Legend wrapperStyle={{ fontSize: 12 }} />
                   <Area type="monotone" dataKey="Projected" fill="url(#forecastFill)" stroke="none" />
@@ -130,10 +136,16 @@ export default function Forecast() {
             </CardHeader>
             <CardContent className="h-72">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={costChartData}>
+                <LineChart data={costChartData} margin={{ top: 8, right: 16, left: 8, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
                   <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
-                  <YAxis tickFormatter={(v) => formatCents(v * 100, currency)} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+                  <YAxis
+                    tickFormatter={(v) => formatCents(v * 100, currency)}
+                    width={76}
+                    tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
                   <Tooltip formatter={(v) => formatCents(Number(v) * 100, currency)} contentStyle={{ borderRadius: 16, border: "1px solid hsl(var(--border))", boxShadow: "0 12px 32px -8px rgb(30 27 75 / .18)", fontSize: 12 }} />
                   <Legend wrapperStyle={{ fontSize: 12 }} />
                   <Line type="monotone" dataKey="Plan cost" stroke="hsl(var(--primary))" strokeWidth={2.5} dot={false} />

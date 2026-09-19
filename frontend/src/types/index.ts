@@ -39,6 +39,7 @@ export interface PendingAssistantAction {
   title: string;
   description: string;
   payload: Record<string, unknown>;
+  confirmation_token: string;
 }
 
 export interface AssistantChatResponse {
@@ -58,6 +59,37 @@ export interface AssistantConfig {
   models: Array<{ id: string; label: string; supports_reasoning: boolean }>;
   default_model: string;
 }
+
+export type AssistantToolState = "running" | "complete" | "error";
+
+export type AssistantStreamEvent =
+  | {
+      type: "status";
+      stage: string;
+      label: string;
+      model_used?: string;
+    }
+  | {
+      type: "tool";
+      name: string;
+      label: string;
+      state: AssistantToolState;
+    }
+  | {
+      type: "answer_delta";
+      delta: string;
+    }
+  | {
+      type: "done";
+      answer: string;
+      model_used: string;
+      tool_activity: Array<{ name: string; label: string }>;
+      pending_action: PendingAssistantAction | null;
+    }
+  | {
+      type: "error";
+      message: string;
+    };
 
 export interface Worker {
   id: number;

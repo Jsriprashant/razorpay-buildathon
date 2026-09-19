@@ -6,14 +6,18 @@ performs the mutation after the user explicitly approves it.
 """
 from __future__ import annotations
 
-from datetime import date
+import os
+import secrets
+from datetime import date, datetime
 from typing import Any
 
 from fastapi import HTTPException, status
+from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from sqlalchemy.orm import Session
 
 from app.models import (
     AppUser,
+    AssistantActionGrant,
     HiringRequest,
     PlanLine,
     RequestStatus,
@@ -190,6 +194,146 @@ WRITE_TOOL_SPECS: list[dict[str, Any]] = [
     },
 ]
 
+ACTION_TOKEN_SALT = "headcounthq-assistant-action-v1"
+ACTION_TOKEN_MAX_AGE_SECONDS = 30 * 60
+
+
+def _action_serializer() -> URLSafeTimedSerializer:
+    secret = os.environ.get("SESSION_SECRET")
+    if not secret:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Action confirmation is not configured",
+        )
+    return URLSafeTimedSerializer(secret, salt=ACTION_TOKEN_SALT)
+
+
+def _sign_action(action: PendingAction, user: AppUser, team_id: int, nonce: str) -> PendingAction:
+    trusted = action.model_dump(mode="json", exclude={"confirmation_token"})
+    token = _action_serializer().dumps(
+        {
+            "user_id": user.id,
+            "team_id": team_id,
+            "nonce": nonce,
+            "action": trusted,
+        }
+    )
+    return action.model_copy(update={"confirmation_token": token})
+
+
+def _verify_action(action: PendingAction, user: AppUser, team_id: int) -> tuple[PendingAction, str]:
+    if not action.confirmation_token:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This action is missing a valid confirmation token. Ask Copilot to prepare it again.",
+        )
+    try:
+        signed = _action_serializer().loads(
+            action.confirmation_token,
+            max_age=ACTION_TOKEN_MAX_AGE_SECONDS,
+        )
+    except SignatureExpired as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This action confirmation expired. Ask Copilot to prepare it again.",
+        ) from exc
+    except BadSignature as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This action confirmation is invalid. No data was changed.",
+        ) from exc
+
+    if signed.get("user_id") != user.id or signed.get("team_id") != team_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This action was prepared for a different user or team.",
+        )
+    try:
+        return PendingAction.model_validate(signed["action"]), str(signed["nonce"])
+    except (KeyError, TypeError, ValueError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This action confirmation is invalid. No data was changed.",
+        ) from exc
+
+
+def _issue_action(
+    db: Session,
+    action: PendingAction,
+    user: AppUser,
+    team_id: int,
+) -> PendingAction:
+    nonce = secrets.token_urlsafe(24)
+    db.add(
+        AssistantActionGrant(
+            id=nonce,
+            user_id=user.id,
+            team_id=team_id,
+            action_kind=action.kind,
+            created_at=datetime.utcnow(),
+        )
+    )
+    db.commit()
+    return _sign_action(action, user, team_id, nonce)
+
+
+def _claim_action(
+    db: Session,
+    nonce: str,
+    user: AppUser,
+    team_id: int,
+) -> AssistantActionResponse | None:
+    grant = (
+        db.query(AssistantActionGrant)
+        .filter(
+            AssistantActionGrant.id == nonce,
+            AssistantActionGrant.user_id == user.id,
+            AssistantActionGrant.team_id == team_id,
+        )
+        .one_or_none()
+    )
+    if grant is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This action confirmation is invalid. No data was changed.",
+        )
+    if grant.result_json:
+        return AssistantActionResponse.model_validate_json(grant.result_json)
+    if grant.consumed_at is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This action is already being processed.",
+        )
+
+    claimed = (
+        db.query(AssistantActionGrant)
+        .filter(
+            AssistantActionGrant.id == nonce,
+            AssistantActionGrant.consumed_at.is_(None),
+        )
+        .update({AssistantActionGrant.consumed_at: datetime.utcnow()}, synchronize_session=False)
+    )
+    if claimed != 1:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This action is already being processed.",
+        )
+    db.commit()
+    return None
+
+
+def _store_action_result(
+    db: Session,
+    nonce: str,
+    result: AssistantActionResponse,
+) -> AssistantActionResponse:
+    grant = db.get(AssistantActionGrant, nonce)
+    if grant is not None:
+        grant.result_json = result.model_dump_json()
+        db.commit()
+    return result
+
 
 def available_tool_specs(user: AppUser) -> list[dict[str, Any]]:
     if user.role in (Role.MANAGER, Role.HR):
@@ -290,7 +434,11 @@ def execute_tool(
             description="Creates a draft hiring request. It will not be submitted to HR yet.",
             payload=data,
         )
-        return {"status": "awaiting_user_confirmation", "action": action.model_dump(mode="json")}, action
+        action = _issue_action(db, action, user, team_id)
+        return {
+            "status": "awaiting_user_confirmation",
+            "action": action.model_dump(mode="json", exclude={"confirmation_token"}),
+        }, action
 
     if name == "prepare_plan_update":
         validated = PlanLineIn.model_validate(arguments)
@@ -304,7 +452,11 @@ def execute_tool(
             ),
             payload=validated.model_dump(mode="json"),
         )
-        return {"status": "awaiting_user_confirmation", "action": action.model_dump(mode="json")}, action
+        action = _issue_action(db, action, user, team_id)
+        return {
+            "status": "awaiting_user_confirmation",
+            "action": action.model_dump(mode="json", exclude={"confirmation_token"}),
+        }, action
 
     if name == "prepare_request_submission":
         request_id = int(arguments["request_id"])
@@ -322,7 +474,11 @@ def execute_tool(
             description="Sends this request to HR for review and creates the normal notification.",
             payload={"request_id": request.id},
         )
-        return {"status": "awaiting_user_confirmation", "action": action.model_dump(mode="json")}, action
+        action = _issue_action(db, action, user, team_id)
+        return {
+            "status": "awaiting_user_confirmation",
+            "action": action.model_dump(mode="json", exclude={"confirmation_token"}),
+        }, action
 
     raise ValueError(f"Unknown assistant tool: {name}")
 
@@ -335,22 +491,34 @@ def confirm_action(
 ) -> AssistantActionResponse:
     if user.role not in (Role.MANAGER, Role.HR):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Your role cannot change data")
+    action, nonce = _verify_action(action, user, team_id)
+    prior_result = _claim_action(db, nonce, user, team_id)
+    if prior_result is not None:
+        return prior_result
 
     if action.kind == "create_hiring_request":
         payload = HiringRequestCreate.model_validate(action.payload)
         created = request_service.create_request(db, team_id, payload, user)
-        return AssistantActionResponse(
-            message=f"Draft request #{created.id} for {created.role_title} was created.",
-            link=f"/requests/{created.id}",
-            entity_id=created.id,
+        return _store_action_result(
+            db,
+            nonce,
+            AssistantActionResponse(
+                message=f"Draft request #{created.id} for {created.role_title} was created.",
+                link=f"/requests/{created.id}",
+                entity_id=created.id,
+            ),
         )
 
     if action.kind == "update_plan_month":
         line = PlanLineIn.model_validate(action.payload)
         plan_service.upsert_plan(db, team_id, [line])
-        return AssistantActionResponse(
-            message=f"The plan for {line.month_start.strftime('%B %Y')} was updated.",
-            link="/plan",
+        return _store_action_result(
+            db,
+            nonce,
+            AssistantActionResponse(
+                message=f"The plan for {line.month_start.strftime('%B %Y')} was updated.",
+                link="/plan",
+            ),
         )
 
     if action.kind == "submit_hiring_request":
@@ -362,10 +530,14 @@ def confirm_action(
             submitted = request_service.resubmit_request(db, team_id, request_id, user)
         else:
             submitted = request_service.submit_request(db, team_id, request_id, user)
-        return AssistantActionResponse(
-            message=f"Request #{submitted.id} was submitted to HR.",
-            link=f"/requests/{submitted.id}",
-            entity_id=submitted.id,
+        return _store_action_result(
+            db,
+            nonce,
+            AssistantActionResponse(
+                message=f"Request #{submitted.id} was submitted to HR.",
+                link=f"/requests/{submitted.id}",
+                entity_id=submitted.id,
+            ),
         )
 
     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported assistant action")

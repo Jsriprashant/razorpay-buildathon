@@ -18,7 +18,7 @@ from app.models.org import AppUser, Setting, Team  # noqa: F401
 from app.models.planning import Cycle, CycleSummary, PlanLine  # noqa: F401
 from app.models.postings import Application, JobPosting  # noqa: F401
 from app.models.requests import ApprovalEvent, HiringRequest, Position  # noqa: F401
-from app.models.system import AuditLog, Notification, ReconResolution  # noqa: F401
+from app.models.system import AssistantActionGrant, AuditLog, Notification, ReconResolution  # noqa: F401
 from app.models.vendors import VendorCompany, VendorEngagement, VendorMessage  # noqa: F401
 from app.models.workforce import SnapshotWorker, Worker  # noqa: F401
 
@@ -43,6 +43,7 @@ __all__ = [
     "ReconResolution",
     "Notification",
     "AuditLog",
+    "AssistantActionGrant",
     "Role",
     "WorkerSource",
     "CycleStatus",

@@ -19,6 +19,7 @@ class PendingAction(BaseModel):
     title: str = Field(min_length=1, max_length=200)
     description: str = Field(min_length=1, max_length=1_000)
     payload: dict[str, Any]
+    confirmation_token: str | None = None
 
 
 class AssistantChatRequest(BaseModel):

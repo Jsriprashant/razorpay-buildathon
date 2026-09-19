@@ -37,9 +37,10 @@ export function Topbar() {
       <div className="flex flex-1 items-center justify-end gap-2">
         <DemoPanel />
         <NotificationBell />
+        {/* Profile + logout live at the bottom of the sidebar on md+ screens; this is the mobile-only fallback. */}
         {user && (
-          <div className="ml-1 flex items-center gap-3 rounded-full border border-border bg-background py-1 pl-1 pr-1.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+          <div className="ml-1 flex items-center gap-3 rounded-full border border-border bg-background py-1 pl-1 pr-1.5 md:hidden">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-blue text-xs font-semibold text-white">
               {initials}
             </div>
             <div className="hidden text-left sm:block">
