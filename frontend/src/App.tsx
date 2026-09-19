@@ -3,6 +3,10 @@ import { AppShell } from "@/components/layout/AppShell";
 import { RequireAuth, RequireRole } from "@/components/RequireAuth";
 import Login from "@/pages/Login";
 import Home from "@/pages/Home";
+import Roster from "@/pages/Roster";
+import Recon from "@/pages/Recon";
+import Plan from "@/pages/Plan";
+import Forecast from "@/pages/Forecast";
 import HrSettings from "@/pages/hr/Settings";
 import CareersLayout from "@/pages/CareersLayout";
 import { StubPage } from "@/pages/StubPage";
@@ -28,13 +32,13 @@ export default function App() {
         }
       >
         <Route path="/home" element={<Home />} />
-        <Route path="/roster" element={<StubPage title="Roster" description="Worker roster table lands here." />} />
-        <Route path="/recon" element={<StubPage title="Reconciliation" description="Month-over-month diffs land here." />} />
+        <Route path="/roster" element={<Roster />} />
+        <Route path="/recon" element={<Recon />} />
         <Route path="/requests" element={<StubPage title="Requests" description="Your submitted requests land here." />} />
         <Route path="/requests/new" element={<StubPage title="New request" description="The request form lands here." />} />
         <Route path="/requests/:id" element={<StubPage title="Request detail" description="Request detail and approval trail land here." />} />
-        <Route path="/forecast" element={<StubPage title="Forecast" description="Forecast suggestions land here." />} />
-        <Route path="/plan" element={<StubPage title="Plan" description="Fiscal-year headcount plan lands here." />} />
+        <Route path="/forecast" element={<Forecast />} />
+        <Route path="/plan" element={<Plan />} />
         <Route path="/vendors" element={<StubPage title="Vendors" description="Vendor engagement overview lands here." />} />
         <Route path="/history" element={<StubPage title="History" description="Closed-cycle history lands here." />} />
 

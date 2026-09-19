@@ -24,6 +24,13 @@ def round_half_up_cents(amount: Decimal | Fraction | int) -> int:
     return int(quantized)
 
 
+# Alias: the same ROUND_HALF_UP helper, used outside a strictly "cents"
+# context (e.g. rounding a headcount number in the forecast). Keeping one
+# function and two names avoids a second rounding implementation existing
+# anywhere in the codebase.
+round_half_up = round_half_up_cents
+
+
 def prorate_cents(total_cents: int, active_days: int, days_in_month: int) -> int:
     """Prorate a whole-period amount (e.g. a full month's cost) down to the
     portion covered by active_days out of days_in_month, rounded once to the
